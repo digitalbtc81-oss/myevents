@@ -1,0 +1,46 @@
+/* Event Calendar engine. The custom calendar stylesheet is unchanged. */
+.ekdiloseis-ec {
+	box-sizing: border-box;
+	max-width: 56rem;
+	margin: 1.5rem 0;
+	color: var(--ekd-color, #1c1c1c);
+	font-family: var(--ekd-font-family, inherit);
+	font-size: var(--ekd-font-size, 1rem);
+	line-height: 1.4;
+	background: var(--ekd-bg, transparent);
+}
+
+.ekdiloseis-ec *,
+.ekdiloseis-ec *::before,
+.ekdiloseis-ec *::after {
+	box-sizing: border-box;
+}
+
+.ekdiloseis-ec .ekdiloseis-ec__calendar {
+	min-height: 20rem;
+}
+
+.ekdiloseis-ec .ec {
+	font-family: var(--ekd-font-family, inherit);
+	font-size: var(--ekd-font-size, 1rem);
+	color: var(--ekd-color, inherit);
+	--ec-bg-color: var(--ekd-bg, #fff);
+	--ec-text-color: var(--ekd-color, currentcolor);
+	--ec-button-text-color: var(--ekd-color, var(--ec-text-color));
+}
+
+.ekdiloseis-ec .ec-button,
+.ekdiloseis-ec .ec-title,
+.ekdiloseis-ec .ec-day-head {
+	font-family: var(--ekd-font-family);
+	font-size: var(--ekd-font-size);
+}
+
+.ekdiloseis-ec .ec-day {
+	cursor: pointer;
+}
+
+.ekdiloseis-ec .ec-day.is-selected {
+	box-shadow: inset 0 0 0 2px #1d4f91;
+}
+

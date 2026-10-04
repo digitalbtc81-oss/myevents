@@ -1,0 +1,45 @@
+/* Schedule-X engine. The custom calendar stylesheet is unchanged. */
+.ekdiloseis-sx {
+	box-sizing: border-box;
+	max-width: 56rem;
+	margin: 1.5rem 0;
+	color: var(--ekd-color, #1c1c1c);
+	font-family: var(--ekd-font-family, inherit);
+	font-size: var(--ekd-font-size, 1rem);
+	line-height: 1.4;
+	background: var(--ekd-bg, transparent);
+	--sx-color-background: var(--ekd-bg, #fff);
+	--sx-color-on-background: var(--ekd-color, #1c1b1f);
+	--sx-color-on-surface: var(--ekd-color, #1c1b1f);
+	--sx-internal-color-text: var(--ekd-color, #000);
+	--sx-font-small: var(--ekd-font-size, 0.875rem);
+	--sx-font-extra-small: var(--ekd-font-size, 0.75rem);
+	--sx-font-large: var(--ekd-font-size, 1.125rem);
+	--sx-font-extra-large: var(--ekd-font-size, 1.25rem);
+}
+
+.ekdiloseis-sx *,
+.ekdiloseis-sx *::before,
+.ekdiloseis-sx *::after {
+	box-sizing: border-box;
+}
+
+.ekdiloseis-sx .ekdiloseis-sx__calendar {
+	height: 720px;
+	min-height: 720px;
+}
+
+.ekdiloseis-sx .sx__month-grid-day {
+	cursor: pointer;
+}
+
+.ekdiloseis-sx .sx__month-grid-day.is-selected {
+	box-shadow: inset 0 0 0 2px #1d4f91;
+}
+
+.ekdiloseis-sx .sx__calendar-wrapper,
+.ekdiloseis-sx .sx__calendar {
+	font-family: var(--ekd-font-family, inherit);
+	color: var(--ekd-color, var(--sx-internal-color-text));
+}
+

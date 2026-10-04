@@ -1,0 +1,71 @@
+.ekdiloseis-icon-picker {
+	margin-top: 8px;
+}
+
+.ekdiloseis-icon-picker__panel {
+	margin-top: 8px;
+	padding: 10px;
+	max-width: 680px;
+	border: 1px solid #c3c4c7;
+	background: #fff;
+	box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
+}
+
+.ekdiloseis-icon-picker__grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(78px, 1fr));
+	gap: 6px;
+}
+
+.ekdiloseis-icon-picker__choice {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: flex-start;
+	gap: 4px;
+	min-height: 62px;
+	margin: 0;
+	padding: 8px 4px;
+	border: 1px solid #dcdcde;
+	border-radius: 4px;
+	background: #f6f7f7;
+	color: #1d2327;
+	cursor: pointer;
+	font-size: 11px;
+	line-height: 1.2;
+	text-align: center;
+}
+
+.ekdiloseis-icon-picker__choice:hover,
+.ekdiloseis-icon-picker__choice:focus {
+	border-color: #2271b1;
+	color: #2271b1;
+	outline: none;
+}
+
+.ekdiloseis-icon-picker__choice.is-selected {
+	border-color: #2271b1;
+	background: #f0f6fc;
+	box-shadow: 0 0 0 1px #2271b1;
+	color: #135e96;
+}
+
+.ekdiloseis-icon-picker__glyph {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 20px;
+	font-size: 18px;
+	line-height: 1;
+}
+
+.ekdiloseis-icon-picker__glyph i {
+	font-size: 18px;
+	line-height: 1;
+}
+
+.ekdiloseis-icon-picker__name {
+	display: block;
+	max-width: 100%;
+	overflow-wrap: anywhere;
+}

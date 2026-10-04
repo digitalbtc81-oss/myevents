@@ -1,0 +1,39 @@
+/* FullCalendar engine. The custom calendar stylesheet is unchanged. */
+.ekdiloseis-fc {
+	box-sizing: border-box;
+	max-width: 56rem;
+	margin: 1.5rem 0;
+	color: var(--ekd-color, #1c1c1c);
+	font-family: var(--ekd-font-family, inherit);
+	font-size: var(--ekd-font-size, 1rem);
+	line-height: 1.4;
+	background: var(--ekd-bg, transparent);
+	--fc-page-bg-color: var(--ekd-bg, #fff);
+	--fc-neutral-text-color: var(--ekd-color, grey);
+	--fc-small-font-size: var(--ekd-font-size, .85em);
+}
+
+.ekdiloseis-fc .fc {
+	font-family: inherit;
+	font-size: 1em;
+	color: inherit;
+}
+
+.ekdiloseis-fc *,
+.ekdiloseis-fc *::before,
+.ekdiloseis-fc *::after {
+	box-sizing: border-box;
+}
+
+.ekdiloseis-fc .ekdiloseis-fc__calendar {
+	min-height: 20rem;
+}
+
+.ekdiloseis-fc .fc .fc-daygrid-day.is-selected {
+	box-shadow: inset 0 0 0 2px #1d4f91;
+}
+
+.ekdiloseis-fc .fc .fc-daygrid-day {
+	cursor: pointer;
+}
+

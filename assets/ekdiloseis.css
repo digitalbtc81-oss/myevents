@@ -1,0 +1,208 @@
+/* Scoped to the events calendar. */
+.ekdiloseis {
+	box-sizing: border-box;
+	max-width: 40rem;
+	margin: 1.5rem 0;
+	color: var(--ekd-color, #1c1c1c);
+	font-family: var(--ekd-font-family, inherit);
+	font-size: var(--ekd-font-size, 1rem);
+	line-height: 1.4;
+	background: var(--ekd-bg, transparent);
+}
+
+.ekdiloseis *,
+.ekdiloseis *::before,
+.ekdiloseis *::after {
+	box-sizing: border-box;
+}
+
+.ekdiloseis__nav {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.75rem;
+	margin-bottom: 0.75rem;
+}
+
+.ekdiloseis__title {
+	margin: 0;
+	font-size: calc(var(--ekd-font-size, 1rem) * 1.35);
+	line-height: 1.2;
+	text-align: center;
+}
+
+.ekdiloseis a.ekdiloseis__navlink {
+	flex: 0 0 auto;
+	color: #1d4f91;
+	text-decoration: underline;
+	text-underline-offset: 0.15em;
+}
+
+.ekdiloseis__grid {
+	display: grid;
+	grid-template-columns: repeat(7, minmax(0, 1fr));
+	gap: 0.35rem;
+}
+
+.ekdiloseis__dow {
+	text-align: center;
+	font-size: 0.8rem;
+	font-weight: 700;
+	color: var(--ekd-color, #3d3d3d);
+	padding: 0.25rem 0;
+}
+
+.ekdiloseis__pad {
+	display: block;
+	min-height: 2.75rem;
+}
+
+.ekdiloseis button.ekdiloseis__day {
+	appearance: none;
+	-webkit-appearance: none;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	width: 100%;
+	min-height: 2.75rem;
+	margin: 0;
+	padding: 0.25rem 0.1rem 0.35rem;
+	border: 1px solid #d0d5dd;
+	border-radius: 0.4rem;
+	background: var(--ekd-bg, #fff);
+	box-shadow: none;
+	color: var(--ekd-color, #1c1c1c);
+	font: inherit;
+	font-weight: 500;
+	line-height: 1.1;
+	text-decoration: none;
+	cursor: pointer;
+}
+
+.ekdiloseis button.ekdiloseis__day--has {
+	font-weight: 700;
+}
+
+.ekdiloseis__dots {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	gap: 0.15rem;
+	margin-top: 0.2rem;
+}
+
+.ekdiloseis__dot {
+	display: block;
+	width: 0.4rem;
+	height: 0.4rem;
+	border-radius: 50%;
+}
+
+.ekdiloseis button.ekdiloseis__day.is-selected {
+	outline: 2px solid #1d4f91;
+	outline-offset: 1px;
+	background: #e8f0fb;
+}
+
+.ekdiloseis button.ekdiloseis__day:focus-visible {
+	outline: 2px solid #1d4f91;
+	outline-offset: 2px;
+}
+
+.ekdiloseis__list {
+	margin-top: 1rem;
+}
+
+.ekdiloseis__hint,
+.ekdiloseis__empty {
+	margin: 0.5rem 0 0;
+}
+
+.ekdiloseis__event {
+	display: flex;
+	gap: 0.75rem;
+	align-items: center;
+	margin: 0;
+	padding: 0.75rem 0 0.75rem 0.75rem;
+	border-top: 1px solid #e4e4e4;
+	border-left: 0.35rem solid var(--ekd-mark, #6b7280);
+}
+
+.ekdiloseis__thumb {
+	width: 6rem;
+	height: 4rem;
+	object-fit: cover;
+	border-radius: 0.3rem;
+	flex: 0 0 auto;
+	background: #eee;
+}
+
+.ekdiloseis__icon {
+	flex: 0 0 auto;
+	width: 2.75rem;
+	font-size: 1.75rem;
+	line-height: 1;
+	text-align: center;
+	color: var(--ekd-mark, #6b7280);
+}
+
+.ekdiloseis__event-title {
+	margin: 0 0 0.2rem;
+	font-size: 1.05rem;
+	line-height: 1.3;
+}
+
+a.ekdiloseis__event-link {
+	color: inherit;
+	text-decoration: underline;
+	text-underline-offset: 0.12em;
+}
+
+a.ekdiloseis__event-link:hover,
+a.ekdiloseis__event-link:focus {
+	color: inherit;
+}
+
+.ekdiloseis__time {
+	margin: 0;
+}
+
+/* Day list beside the calendar when Layout is Two columns. Stacked keeps block flow. */
+.ekdiloseis--layout-columns > .ekdiloseis__list {
+	min-height: 12rem;
+}
+
+@media (min-width: 800px) {
+	.ekdiloseis.ekdiloseis--layout-columns,
+	.ekdiloseis-fc.ekdiloseis--layout-columns,
+	.ekdiloseis-toast.ekdiloseis--layout-columns,
+	.ekdiloseis-ec.ekdiloseis--layout-columns,
+	.ekdiloseis-sx.ekdiloseis--layout-columns {
+		display: flex;
+		flex-direction: row;
+		align-items: flex-start;
+		column-gap: 1.5rem;
+		max-width: 72rem;
+	}
+
+	.ekdiloseis.ekdiloseis--layout-columns > .ekdiloseis__main,
+	.ekdiloseis-fc.ekdiloseis--layout-columns > .ekdiloseis__main,
+	.ekdiloseis-toast.ekdiloseis--layout-columns > .ekdiloseis__main,
+	.ekdiloseis-ec.ekdiloseis--layout-columns > .ekdiloseis__main,
+	.ekdiloseis-sx.ekdiloseis--layout-columns > .ekdiloseis__main {
+		flex: 3 1 0%;
+		min-width: 0;
+	}
+
+	.ekdiloseis.ekdiloseis--layout-columns > .ekdiloseis__list,
+	.ekdiloseis-fc.ekdiloseis--layout-columns > .ekdiloseis__list,
+	.ekdiloseis-toast.ekdiloseis--layout-columns > .ekdiloseis__list,
+	.ekdiloseis-ec.ekdiloseis--layout-columns > .ekdiloseis__list,
+	.ekdiloseis-sx.ekdiloseis--layout-columns > .ekdiloseis__list {
+		flex: 2 1 0%;
+		min-width: 0;
+		margin-top: 0;
+	}
+}
+

@@ -1,0 +1,55 @@
+/* Toast UI Calendar engine. The custom calendar stylesheet is unchanged. */
+.ekdiloseis-toast {
+	box-sizing: border-box;
+	max-width: 56rem;
+	margin: 1.5rem 0;
+	color: var(--ekd-color, #1c1c1c);
+	font-family: var(--ekd-font-family, inherit);
+	font-size: var(--ekd-font-size, 1rem);
+	line-height: 1.4;
+	background: var(--ekd-bg, transparent);
+}
+
+.ekdiloseis-toast *,
+.ekdiloseis-toast *::before,
+.ekdiloseis-toast *::after {
+	box-sizing: border-box;
+}
+
+.ekdiloseis-toast button.ekdiloseis__navlink {
+	flex: 0 0 auto;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	color: #1d4f91;
+	font: inherit;
+	text-decoration: underline;
+	text-underline-offset: 0.15em;
+	cursor: pointer;
+}
+
+.ekdiloseis-toast .ekdiloseis-toast__calendar {
+	height: 640px;
+	min-height: 640px;
+}
+
+.ekdiloseis-toast .toastui-calendar-layout,
+.ekdiloseis-toast .toastui-calendar-day-name-item,
+.ekdiloseis-toast .toastui-calendar-grid-cell-date,
+.ekdiloseis-toast .toastui-calendar-template-monthGridHeader,
+.ekdiloseis-toast .toastui-calendar-weekday-event-title {
+	font-family: var(--ekd-font-family);
+	font-size: var(--ekd-font-size);
+	color: var(--ekd-color);
+}
+
+.ekdiloseis-toast .toastui-calendar-daygrid-cell {
+	cursor: pointer;
+	background-color: var(--ekd-bg);
+}
+
+.ekdiloseis-toast .toastui-calendar-daygrid-cell.is-selected {
+	box-shadow: inset 0 0 0 2px #1d4f91;
+}
+
