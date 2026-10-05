@@ -1034,9 +1034,9 @@ function ekdiloseis_shortcode() {
 	<div class="ekdiloseis <?php echo esc_attr( ekdiloseis_layout_class() ); ?>" data-month="<?php echo esc_attr( $month->format( 'Y-m' ) ); ?>"<?php echo ekdiloseis_root_style_attr( 'custom' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in helper. ?>>
 		<div class="ekdiloseis__main">
 		<nav class="ekdiloseis__nav" aria-label="Change month">
-			<a class="ekdiloseis__navlink" rel="prev" href="<?php echo esc_url( $prev_url ); ?>"><?php echo esc_html( $copy['previous'] ); ?></a>
+			<a class="ekdiloseis__navlink" rel="prev" href="<?php echo esc_url( $prev_url ); ?>" aria-label="<?php echo esc_attr( $copy['previousMonth'] ); ?>" title="<?php echo esc_attr( $copy['previousMonth'] ); ?>"><span aria-hidden="true">&lsaquo;</span></a>
 			<h2 class="ekdiloseis__title"><?php echo esc_html( $month_label . ' ' . $year ); ?></h2>
-			<a class="ekdiloseis__navlink" rel="next" href="<?php echo esc_url( $next_url ); ?>"><?php echo esc_html( $copy['next'] ); ?></a>
+			<a class="ekdiloseis__navlink" rel="next" href="<?php echo esc_url( $next_url ); ?>" aria-label="<?php echo esc_attr( $copy['nextMonth'] ); ?>" title="<?php echo esc_attr( $copy['nextMonth'] ); ?>"><span aria-hidden="true">&rsaquo;</span></a>
 		</nav>
 		<div class="ekdiloseis__grid">
 			<?php foreach ( $weekdays as $weekday ) : ?>
