@@ -43,7 +43,7 @@ function ekdiloseis_normalize_datetime( $raw ) {
 }
 
 /**
- * Parse an admin date as mm/dd/yyyy or mm/dd/yy.
+ * Parse an admin date as dd/mm/yyyy or dd/mm/yy.
  *
  * Two-digit years use the common pivot: 00-69 are 2000-2069, 70-99 are 1970-1999.
  *
@@ -58,8 +58,8 @@ function ekdiloseis_parse_admin_date( $raw ) {
 	if ( ! preg_match( '/^(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})$/', $raw, $matches ) ) {
 		return '';
 	}
-	$month     = (int) $matches[1];
-	$day       = (int) $matches[2];
+	$day       = (int) $matches[1];
+	$month     = (int) $matches[2];
 	$year_text = $matches[3];
 	if ( 2 === strlen( $year_text ) ) {
 		$yy   = (int) $year_text;
@@ -97,7 +97,7 @@ function ekdiloseis_parse_admin_time( $raw ) {
 }
 
 /**
- * Turn submitted mm/dd/y date and time into stored Y-m-d H:i:s.
+ * Turn submitted dd/mm/y date and time into stored Y-m-d H:i:s.
  *
  * @param string $date_raw Date field.
  * @param string $time_raw Time field.
@@ -113,7 +113,7 @@ function ekdiloseis_submitted_datetime( $date_raw, $time_raw ) {
 }
 
 /**
- * Stored datetime as mm/dd/yyyy for the meta box.
+ * Stored datetime as dd/mm/yyyy for the meta box.
  *
  * @param string $stored Stored MySQL datetime.
  * @return string
@@ -127,7 +127,7 @@ function ekdiloseis_admin_date_value( $stored ) {
 	if ( ! $dt instanceof DateTimeImmutable ) {
 		return '';
 	}
-	return $dt->format( 'm/d/Y' );
+	return $dt->format( 'd/m/Y' );
 }
 
 /**
@@ -205,15 +205,15 @@ function ekdiloseis_render_meta_box( $post ) {
 	?>
 	<p>
 		<label for="ekdiloseis_event_start_date"><strong>Start</strong></label><br>
-		<input type="text" id="ekdiloseis_event_start_date" name="ekdiloseis_event_start_date" value="<?php echo esc_attr( ekdiloseis_admin_date_value( $start ) ); ?>" placeholder="mm/dd/yyyy" inputmode="numeric" autocomplete="off" maxlength="10" size="10">
+		<input type="text" id="ekdiloseis_event_start_date" name="ekdiloseis_event_start_date" value="<?php echo esc_attr( ekdiloseis_admin_date_value( $start ) ); ?>" placeholder="dd/mm/yyyy" inputmode="numeric" autocomplete="off" maxlength="10" size="10">
 		<input type="text" id="ekdiloseis_event_start_time" name="ekdiloseis_event_start_time" value="<?php echo esc_attr( ekdiloseis_admin_time_value( $start ) ); ?>" placeholder="HH:MM" inputmode="numeric" autocomplete="off" maxlength="8" size="8" aria-label="Start time">
 	</p>
 	<p>
 		<label for="ekdiloseis_event_end_date"><strong>End</strong></label><br>
-		<input type="text" id="ekdiloseis_event_end_date" name="ekdiloseis_event_end_date" value="<?php echo esc_attr( ekdiloseis_admin_date_value( $end ) ); ?>" placeholder="mm/dd/yyyy" inputmode="numeric" autocomplete="off" maxlength="10" size="10">
+		<input type="text" id="ekdiloseis_event_end_date" name="ekdiloseis_event_end_date" value="<?php echo esc_attr( ekdiloseis_admin_date_value( $end ) ); ?>" placeholder="dd/mm/yyyy" inputmode="numeric" autocomplete="off" maxlength="10" size="10">
 		<input type="text" id="ekdiloseis_event_end_time" name="ekdiloseis_event_end_time" value="<?php echo esc_attr( ekdiloseis_admin_time_value( $end ) ); ?>" placeholder="HH:MM" inputmode="numeric" autocomplete="off" maxlength="8" size="8" aria-label="End time">
 		<br>
-		<span class="description"><?php echo esc_html( 'Date as mm/dd/yyyy or mm/dd/yy, then the time (HH:MM).' ); ?></span>
+		<span class="description"><?php echo esc_html( 'Date as dd/mm/yyyy or dd/mm/yy, then the time (HH:MM).' ); ?></span>
 	</p>
 	<p>
 		<label>
@@ -381,7 +381,7 @@ function ekdiloseis_admin_notices() {
 	}
 
 	if ( 'invalid' === $code ) {
-		$message = 'Enter a valid date as mm/dd/yyyy (or mm/dd/yy) and a time (HH:MM). The range was not saved.';
+		$message = 'Enter a valid date as dd/mm/yyyy (or dd/mm/yy) and a time (HH:MM). The range was not saved.';
 	} else {
 		$message = 'End must be after start. The range was not saved.';
 	}
