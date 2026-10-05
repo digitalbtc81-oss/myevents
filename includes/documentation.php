@@ -59,7 +59,7 @@ function ekdiloseis_render_docs_page() {
 			'How to add an event',
 			array(
 				'Open Events, then Add New. Set the title, the content, and the featured image.',
-				'In Schedule, enter Start and End as a date plus a time. The date is mm/dd/yyyy (mm/dd/yy is also accepted). The time is 24-hour HH:MM. Seconds are optional; if you omit them they are stored as 00.',
+				'In Schedule, enter Start and End as a date plus a time. The date is dd/mm/yyyy (dd/mm/yy is also accepted). The time is 24-hour HH:MM. Seconds are optional; if you omit them they are stored as 00.',
 				'The values are stored as Y-m-d H:i:s, using the site timezone (Europe/Athens) as wall-clock time. End must be after start. If the date or time is invalid, or end is not after start, the range is not saved and the previous start and end stay as they were. Color and icon on the same screen are saved on their own.',
 				'The events list has a Start column (day/month/year and HH:MM) that can be sorted.',
 			)
