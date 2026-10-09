@@ -535,28 +535,28 @@ a.ekdiloseis__event-link:focus {
 }
 
 @media (min-width: 800px) {
+	/* Two equal halves (v1.3.2): calendar 50% of the container, day panel the other 50%. */
 	.ekdiloseis.ekdiloseis--layout-columns {
-		display: flex;
-		flex-direction: row;
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
 		/* Stretch: the day panel takes exactly the calendar card's height. */
 		align-items: stretch;
 		column-gap: 1.5em;
-		max-width: 81rem;
+		width: 100%;
+		max-width: 100%;
 	}
 
-	/* Calendar card +20% (v1.3.1) (39em -> 47em, ~750px); day cells keep their
-	 * aspect ratio, so they grow 20% in both width and height. */
+	/* Day cells keep their aspect ratio (width 100% of the column, 1 / 0.9),
+	 * so the calendar grows and shrinks with the container. */
 	.ekdiloseis.ekdiloseis--layout-columns > .ekdiloseis__main {
-		flex: 0 1 var(--ekd-cal-width, 47em);
-		max-width: var(--ekd-cal-width, 47em);
 		min-width: 0;
-		align-self: flex-start;
+		align-self: start;
 	}
 
 	.ekdiloseis.ekdiloseis--layout-columns > .ekdiloseis__list {
-		flex: 1 1 0%;
-		min-width: 18em;
+		min-width: 0;
 		margin-top: 0;
+		align-self: stretch;
 		/* The panel adds no height of its own: the row takes the calendar card's height. */
 		contain: size;
 	}
