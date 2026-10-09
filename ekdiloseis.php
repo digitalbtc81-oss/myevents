@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Events
  * Description: Events calendar. Shortcode: [myevents].
- * Version: 1.3.2
+ * Version: 1.3.4
  * Author: Events
  * Text Domain: ekdiloseis
  * Requires at least: 6.0
@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'EKDILOSEIS_VERSION', '1.3.2' );
+define( 'EKDILOSEIS_VERSION', '1.3.4' );
 define( 'EKDILOSEIS_FILE', __FILE__ );
 define( 'EKDILOSEIS_DIR', plugin_dir_path( __FILE__ ) );
 define( 'EKDILOSEIS_URL', plugin_dir_url( __FILE__ ) );

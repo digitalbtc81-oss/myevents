@@ -384,6 +384,18 @@ function ekdiloseis_sanitize_style_row( $row, $fill_defaults, $engine = '' ) {
 		if ( '' !== $selected ) {
 			$colors['color_selected'] = $selected;
 		}
+		// Optional selected-day number color. Empty means automatic (contrast with the fill).
+		// The settings form sends color_selected_text_on (hidden 0 + checkbox 1); imports omit it.
+		$text_on = true;
+		if ( array_key_exists( 'color_selected_text_on', $row ) ) {
+			$text_on = '1' === (string) ( is_scalar( $row['color_selected_text_on'] ) ? $row['color_selected_text_on'] : '' );
+		}
+		if ( $text_on ) {
+			$selected_text = ekdiloseis_sanitize_selected_color( $row['color_selected_text'] ?? '' );
+			if ( '' !== $selected_text ) {
+				$colors['color_selected_text'] = $selected_text;
+			}
+		}
 	}
 
 	$clean = array();
@@ -475,7 +487,12 @@ function ekdiloseis_root_style_attr( $engine ) {
 	}
 	if ( 'custom' === $engine && isset( $row['color_selected'] ) && is_string( $row['color_selected'] ) ) {
 		$parts[] = '--ekd-selected:' . $row['color_selected'];
-		$parts[] = '--ekd-selected-text:' . ekdiloseis_contrast_text_color( $row['color_selected'] );
+		$selected_text = ( isset( $row['color_selected_text'] ) && is_string( $row['color_selected_text'] ) )
+			? $row['color_selected_text']
+			: ekdiloseis_contrast_text_color( $row['color_selected'] );
+		$parts[] = '--ekd-selected-text:' . $selected_text;
+	} elseif ( 'custom' === $engine && isset( $row['color_selected_text'] ) && is_string( $row['color_selected_text'] ) ) {
+		$parts[] = '--ekd-selected-text:' . $row['color_selected_text'];
 	}
 	if ( ! $parts ) {
 		return '';
@@ -892,7 +909,27 @@ function ekdiloseis_styles_field_cb() {
 						<label for="ekdiloseis-selected-custom"><?php echo esc_html( 'Selected day color' ); ?></label><br>
 						<input id="ekdiloseis-selected-custom" name="<?php echo esc_attr( 'ekdiloseis_styles[custom][color_selected]' ); ?>" type="color" value="<?php echo esc_attr( (string) $values['color_selected'] ); ?>">
 					</p>
-					<p class="description"><?php echo esc_html( 'Fill and border of the selected day. The day number switches to white or dark automatically for contrast.' ); ?></p>
+					<p class="description"><?php echo esc_html( 'Fill and border of the selected day. The day number switches to white or dark automatically for contrast, unless Selected day text color is set below.' ); ?></p>
+					<?php
+					$has_selected_text    = isset( $values['color_selected_text'] ) && is_string( $values['color_selected_text'] ) && '' !== $values['color_selected_text'];
+					$selected_text_picker = $has_selected_text ? $values['color_selected_text'] : ekdiloseis_contrast_text_color( (string) $values['color_selected'] );
+					$selected_text_picker = ekdiloseis_sanitize_selected_color( $selected_text_picker );
+					if ( '' === $selected_text_picker ) {
+						$selected_text_picker = '#ffffff';
+					}
+					?>
+					<p>
+						<input type="hidden" name="<?php echo esc_attr( 'ekdiloseis_styles[custom][color_selected_text_on]' ); ?>" value="0">
+						<label>
+							<input type="checkbox" id="ekdiloseis-selected-text-on" name="<?php echo esc_attr( 'ekdiloseis_styles[custom][color_selected_text_on]' ); ?>" value="1" <?php checked( $has_selected_text ); ?>>
+							<?php echo esc_html( 'Custom text color' ); ?>
+						</label>
+					</p>
+					<p>
+						<label for="ekdiloseis-selected-text-custom"><?php echo esc_html( 'Selected day text color' ); ?></label><br>
+						<input id="ekdiloseis-selected-text-custom" name="<?php echo esc_attr( 'ekdiloseis_styles[custom][color_selected_text]' ); ?>" type="color" value="<?php echo esc_attr( $selected_text_picker ); ?>">
+					</p>
+					<p class="description"><?php echo esc_html( 'Color of the day number on the selected day. Empty (Custom text color not checked) = automatic: white or dark, whichever is easier to read on Selected day color.' ); ?></p>
 				<?php endif; ?>
 			</fieldset>
 		<?php endforeach; ?>

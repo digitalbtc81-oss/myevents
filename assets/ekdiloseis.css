@@ -330,6 +330,15 @@ a.ekdiloseis__event-link:focus {
 	box-shadow: 0 2px 6px rgba(16, 24, 40, 0.3);
 }
 
+/* Selected day number: always the selected text color, even over theme or engine text color rules. */
+.ekdiloseis button.ekdiloseis__day.is-selected,
+.ekdiloseis button.ekdiloseis__day.is-selected:hover,
+.ekdiloseis button.ekdiloseis__day.is-selected:focus,
+.ekdiloseis button.ekdiloseis__day.is-selected:active,
+.ekdiloseis button.ekdiloseis__day.is-selected .ekdiloseis__num {
+	color: var(--ekd-selected-text, #fff) !important;
+}
+
 /* Dots keep their category color on the selected day; a thin white ring keeps them visible on the fill. */
 .ekdiloseis button.ekdiloseis__day.is-selected .ekdiloseis__dot {
 	box-shadow: 0 0 0 1.5px #fff;
@@ -608,4 +617,18 @@ a.ekdiloseis__event-link:focus {
 		width: 4.5em;
 		height: 4.5em;
 	}
+}
+
+/* AJAX month change (v1.3.4): subtle loading state on the month card only. */
+.ekdiloseis > .ekdiloseis__main {
+	transition: opacity 0.15s ease;
+}
+
+.ekdiloseis.is-loading > .ekdiloseis__main {
+	opacity: 0.55;
+	cursor: progress;
+}
+
+.ekdiloseis.is-loading > .ekdiloseis__main .ekdiloseis__day {
+	pointer-events: none;
 }
