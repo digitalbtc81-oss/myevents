@@ -129,7 +129,7 @@ a.ekdiloseis__event-link:focus {
 /* ---------- Default calendar (custom engine) ---------- */
 .ekdiloseis {
 	box-sizing: border-box;
-	max-width: 40rem;
+	max-width: 52rem;
 	margin: 1.5rem 0;
 	color: var(--ekd-color, #111827);
 	font-family: var(--ekd-font-family, inherit);
@@ -296,7 +296,7 @@ a.ekdiloseis__event-link:focus {
 }
 
 .ekdiloseis button.ekdiloseis__day.is-today {
-	border-color: #1e40af;
+	border-color: var(--ekd-selected, #1e40af);
 }
 
 .ekdiloseis .ekdiloseis__num {
@@ -323,15 +323,16 @@ a.ekdiloseis__event-link:focus {
 
 .ekdiloseis button.ekdiloseis__day.is-selected,
 .ekdiloseis button.ekdiloseis__day.is-selected:hover {
-	border-color: #1e40af;
-	background: #1e40af;
-	color: #fff;
+	border-color: var(--ekd-selected, #1e40af);
+	background: var(--ekd-selected, #1e40af);
+	color: var(--ekd-selected-text, #fff);
 	font-weight: 700;
-	box-shadow: 0 2px 6px rgba(30, 64, 175, 0.35);
+	box-shadow: 0 2px 6px rgba(16, 24, 40, 0.3);
 }
 
+/* Dots keep their category color on the selected day; a thin white ring keeps them visible on the fill. */
 .ekdiloseis button.ekdiloseis__day.is-selected .ekdiloseis__dot {
-	background-color: #fff !important;
+	box-shadow: 0 0 0 1.5px #fff;
 }
 
 .ekdiloseis .ekdiloseis__legend {
@@ -537,21 +538,60 @@ a.ekdiloseis__event-link:focus {
 	.ekdiloseis.ekdiloseis--layout-columns {
 		display: flex;
 		flex-direction: row;
-		align-items: flex-start;
+		/* Stretch: the day panel takes exactly the calendar card's height. */
+		align-items: stretch;
 		column-gap: 1.5em;
-		max-width: 64rem;
+		max-width: 81rem;
 	}
 
+	/* Calendar card +20% (v1.3.1) (39em -> 47em, ~750px); day cells keep their
+	 * aspect ratio, so they grow 20% in both width and height. */
 	.ekdiloseis.ekdiloseis--layout-columns > .ekdiloseis__main {
-		flex: 1 1 0%;
-		max-width: 30em;
+		flex: 0 1 var(--ekd-cal-width, 47em);
+		max-width: var(--ekd-cal-width, 47em);
 		min-width: 0;
+		align-self: flex-start;
 	}
 
 	.ekdiloseis.ekdiloseis--layout-columns > .ekdiloseis__list {
-		flex: 1.15 1 0%;
-		min-width: 0;
+		flex: 1 1 0%;
+		min-width: 18em;
 		margin-top: 0;
+		/* The panel adds no height of its own: the row takes the calendar card's height. */
+		contain: size;
+	}
+
+	.ekdiloseis.ekdiloseis--layout-columns > .ekdiloseis__list > .ekdiloseis__dayhead {
+		flex: 0 0 auto;
+	}
+
+	/* Cards fill the rest of the panel and scroll when there are more events. */
+	.ekdiloseis.ekdiloseis--layout-columns > .ekdiloseis__list > .ekdiloseis__cards {
+		flex: 1 1 0%;
+		min-height: 0;
+		overflow-y: auto;
+		overscroll-behavior: contain;
+		margin: -0.5em -0.5em -0.75em;
+		padding: 0.5em 0.5em 0.75em;
+		scrollbar-width: thin;
+		scrollbar-color: #d0d5dd transparent;
+	}
+
+	.ekdiloseis.ekdiloseis--layout-columns > .ekdiloseis__list > .ekdiloseis__cards::-webkit-scrollbar {
+		width: 6px;
+	}
+
+	.ekdiloseis.ekdiloseis--layout-columns > .ekdiloseis__list > .ekdiloseis__cards::-webkit-scrollbar-track {
+		background: transparent;
+	}
+
+	.ekdiloseis.ekdiloseis--layout-columns > .ekdiloseis__list > .ekdiloseis__cards::-webkit-scrollbar-thumb {
+		background: #d0d5dd;
+		border-radius: 3px;
+	}
+
+	.ekdiloseis.ekdiloseis--layout-columns > .ekdiloseis__list > .ekdiloseis__cards::-webkit-scrollbar-thumb:hover {
+		background: #98a2b3;
 	}
 }
 

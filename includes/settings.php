@@ -218,6 +218,33 @@ function ekdiloseis_default_style() {
 }
 
 /**
+ * Default fill for the selected day on the Default (custom) calendar.
+ *
+ * @return string
+ */
+function ekdiloseis_default_selected_color() {
+	return '#1e40af';
+}
+
+/**
+ * Selected-day color as lowercase #rrggbb, or empty when invalid. #rgb is expanded.
+ *
+ * @param mixed $value Raw value.
+ * @return string
+ */
+function ekdiloseis_sanitize_selected_color( $value ) {
+	$color = ekdiloseis_sanitize_style_color( is_string( $value ) ? trim( $value ) : $value );
+	if ( '' === $color ) {
+		return '';
+	}
+	$hex = strtolower( ltrim( $color, '#' ) );
+	if ( 3 === strlen( $hex ) ) {
+		$hex = $hex[0] . $hex[0] . $hex[1] . $hex[1] . $hex[2] . $hex[2];
+	}
+	return 6 === strlen( $hex ) ? '#' . $hex : '';
+}
+
+/**
  * Google Font family, or empty when missing or not allowed.
  * Letters, numbers, spaces, and hyphens only. Anything else is rejected.
  *
@@ -311,9 +338,10 @@ function ekdiloseis_sanitize_style_color( $value ) {
  *
  * @param mixed $row Submitted or stored row.
  * @param bool  $fill_defaults When true (settings save), missing pieces become the form defaults.
+ * @param string $engine Engine key. Only custom keeps color_selected.
  * @return array<string, int|string>
  */
-function ekdiloseis_sanitize_style_row( $row, $fill_defaults ) {
+function ekdiloseis_sanitize_style_row( $row, $fill_defaults, $engine = '' ) {
 	$defaults = ekdiloseis_default_style();
 	if ( ! is_array( $row ) ) {
 		return $fill_defaults ? $defaults : array();
@@ -347,6 +375,16 @@ function ekdiloseis_sanitize_style_row( $row, $fill_defaults ) {
 			$colors[ $key ] = $color;
 		}
 	}
+	// Selected-day fill exists only on the Default (custom) calendar.
+	if ( 'custom' === $engine ) {
+		$selected = ekdiloseis_sanitize_selected_color( $row['color_selected'] ?? '' );
+		if ( '' === $selected && $fill_defaults ) {
+			$selected = ekdiloseis_default_selected_color();
+		}
+		if ( '' !== $selected ) {
+			$colors['color_selected'] = $selected;
+		}
+	}
 
 	$clean = array();
 	if ( '' !== $font ) {
@@ -376,7 +414,7 @@ function ekdiloseis_sanitize_styles( $value ) {
 		if ( ! isset( $value[ $engine ] ) ) {
 			continue;
 		}
-		$row = ekdiloseis_sanitize_style_row( $value[ $engine ], true );
+		$row = ekdiloseis_sanitize_style_row( $value[ $engine ], true, $engine );
 		if ( $row ) {
 			$clean[ $engine ] = $row;
 		}
@@ -398,7 +436,7 @@ function ekdiloseis_get_engine_style( $engine ) {
 	if ( ! is_array( $all ) || ! isset( $all[ $engine ] ) || ! is_array( $all[ $engine ] ) ) {
 		return null;
 	}
-	$row = ekdiloseis_sanitize_style_row( $all[ $engine ], false );
+	$row = ekdiloseis_sanitize_style_row( $all[ $engine ], false, $engine );
 	return $row ? $row : null;
 }
 
@@ -435,6 +473,10 @@ function ekdiloseis_root_style_attr( $engine ) {
 			$parts[] = $var . ':' . $row[ $key ];
 		}
 	}
+	if ( 'custom' === $engine && isset( $row['color_selected'] ) && is_string( $row['color_selected'] ) ) {
+		$parts[] = '--ekd-selected:' . $row['color_selected'];
+		$parts[] = '--ekd-selected-text:' . ekdiloseis_contrast_text_color( $row['color_selected'] );
+	}
 	if ( ! $parts ) {
 		return '';
 	}
@@ -449,6 +491,9 @@ function ekdiloseis_root_style_attr( $engine ) {
  */
 function ekdiloseis_style_form_values( $engine ) {
 	$values = ekdiloseis_default_style();
+	if ( 'custom' === $engine ) {
+		$values['color_selected'] = ekdiloseis_default_selected_color();
+	}
 	$row    = ekdiloseis_get_engine_style( $engine );
 	if ( null === $row ) {
 		return $values;
@@ -842,6 +887,13 @@ function ekdiloseis_styles_field_cb() {
 					<label for="<?php echo esc_attr( 'ekdiloseis-bg-' . $engine ); ?>"><?php echo esc_html( 'Background color' ); ?></label><br>
 					<input id="<?php echo esc_attr( 'ekdiloseis-bg-' . $engine ); ?>" name="<?php echo esc_attr( 'ekdiloseis_styles[' . $engine . '][color_bg]' ); ?>" type="color" value="<?php echo esc_attr( $values['color_bg'] ); ?>">
 				</p>
+				<?php if ( 'custom' === $engine ) : ?>
+					<p>
+						<label for="ekdiloseis-selected-custom"><?php echo esc_html( 'Selected day color' ); ?></label><br>
+						<input id="ekdiloseis-selected-custom" name="<?php echo esc_attr( 'ekdiloseis_styles[custom][color_selected]' ); ?>" type="color" value="<?php echo esc_attr( (string) $values['color_selected'] ); ?>">
+					</p>
+					<p class="description"><?php echo esc_html( 'Fill and border of the selected day. The day number switches to white or dark automatically for contrast.' ); ?></p>
+				<?php endif; ?>
 			</fieldset>
 		<?php endforeach; ?>
 	</div>
