@@ -200,6 +200,11 @@ function ekdiloseis_calendar_copy() {
 				12 => 'Δεκεμβρίου',
 			),
 			'weekdays'        => array( 'Δευ', 'Τρί', 'Τετ', 'Πέμ', 'Παρ', 'Σάβ', 'Κυρ' ),
+			'weekdaysFull'    => array( 'Δευτέρα', 'Τρίτη', 'Τετάρτη', 'Πέμπτη', 'Παρασκευή', 'Σάββατο', 'Κυριακή' ),
+			'countOne'        => '1 προγραμματισμένη εκδήλωση',
+			'countMany'       => '%d προγραμματισμένες εκδηλώσεις',
+			'legend'          => 'Κατηγορίες εκδηλώσεων',
+			'openEvent'       => 'Άνοιγμα εκδήλωσης',
 			'weekdaysSunday'  => array( 'Κυρ', 'Δευ', 'Τρί', 'Τετ', 'Πέμ', 'Παρ', 'Σάβ' ),
 			'sxTranslations'  => array(
 				'Today'                               => 'Σήμερα',
@@ -256,6 +261,11 @@ function ekdiloseis_calendar_copy() {
 			12 => 'December',
 		),
 		'weekdays'       => array( 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun' ),
+		'weekdaysFull'   => array( 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday' ),
+		'countOne'       => '1 scheduled event',
+		'countMany'      => '%d scheduled events',
+		'legend'         => 'Event categories',
+		'openEvent'      => 'Open event',
 		'weekdaysSunday' => array( 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat' ),
 		'sxTranslations' => null,
 	);
@@ -988,6 +998,71 @@ function ekdiloseis_shortcode() {
 		return ekdiloseis_render_schedulex();
 	}
 
+	return ekdiloseis_render_custom();
+}
+
+/**
+ * Small inline SVG icons for the Default calendar. Decorative only.
+ *
+ * @param string $name chevron-left|chevron-right|clock|pin|calendar.
+ * @return string
+ */
+function ekdiloseis_svg_icon( $name ) {
+	$paths = array(
+		'chevron-left'  => '<path d="M15 18l-6-6 6-6"/>',
+		'chevron-right' => '<path d="M9 18l6-6-6-6"/>',
+		'clock'         => '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+		'pin'           => '<path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/>',
+		'calendar'      => '<rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/>',
+	);
+	if ( ! isset( $paths[ $name ] ) ) {
+		return '';
+	}
+	return '<svg class="ekdiloseis__svg ekdiloseis__svg--' . esc_attr( $name ) . '" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">' . $paths[ $name ] . '</svg>';
+}
+
+/**
+ * Category used for the badge and legend: the one with the lowest term id, like the color.
+ *
+ * @param int $post_id Post ID.
+ * @return WP_Term|null
+ */
+function ekdiloseis_event_primary_term( $post_id ) {
+	$terms = get_the_terms( (int) $post_id, 'ekdilosi_katigoria' );
+	if ( ! is_array( $terms ) || ! $terms ) {
+		return null;
+	}
+	usort(
+		$terms,
+		static function ( $a, $b ) {
+			return (int) $a->term_id <=> (int) $b->term_id;
+		}
+	);
+	return $terms[0] instanceof WP_Term ? $terms[0] : null;
+}
+
+/**
+ * Short plain-text excerpt for an event card.
+ *
+ * @param int $post_id Post ID.
+ * @return string
+ */
+function ekdiloseis_event_excerpt( $post_id ) {
+	$post = get_post( (int) $post_id );
+	if ( ! $post instanceof WP_Post ) {
+		return '';
+	}
+	$text = '' !== trim( (string) $post->post_excerpt ) ? (string) $post->post_excerpt : strip_shortcodes( (string) $post->post_content );
+	$text = wp_trim_words( wp_strip_all_tags( $text ), 30, '…' );
+	return trim( html_entity_decode( $text, ENT_QUOTES, 'UTF-8' ) );
+}
+
+/**
+ * Default (built-in) calendar: month card with legend, and a day panel with event cards.
+ *
+ * @return string
+ */
+function ekdiloseis_render_custom() {
 	ekdiloseis_enqueue_assets();
 
 	$month       = ekdiloseis_requested_month();
@@ -998,6 +1073,24 @@ function ekdiloseis_shortcode() {
 	$pad         = (int) $month->format( 'N' ) - 1;
 	$month_label = ekdiloseis_month_name( $month_num );
 	$genitive    = ekdiloseis_month_name_genitive( $month_num );
+	$today       = ekdiloseis_today_date();
+
+	// Card extras for this engine only: category badge, location, excerpt. Legend from the same categories.
+	$legend = array();
+	foreach ( $events as $index => $event ) {
+		$term = ekdiloseis_event_primary_term( (int) $event['id'] );
+		$events[ $index ]['category'] = $term ? html_entity_decode( $term->name, ENT_QUOTES, 'UTF-8' ) : '';
+		$location_raw                 = get_post_meta( (int) $event['id'], 'event_location', true );
+		$events[ $index ]['location'] = ekdiloseis_sanitize_location( is_string( $location_raw ) ? $location_raw : '' );
+		$events[ $index ]['excerpt']  = ekdiloseis_event_excerpt( (int) $event['id'] );
+		if ( $term && ! isset( $legend[ (int) $term->term_id ] ) ) {
+			$legend[ (int) $term->term_id ] = array(
+				'name'  => $term->name,
+				'color' => ekdiloseis_category_color( (int) $term->term_id ),
+			);
+		}
+	}
+	ksort( $legend );
 
 	$marked = array();
 	for ( $day = 1; $day <= $days; $day++ ) {
@@ -1018,15 +1111,29 @@ function ekdiloseis_shortcode() {
 	if ( ! is_string( $page_url ) || '' === $page_url ) {
 		$page_url = home_url( '/' );
 	}
-	$prev_url = add_query_arg( 'ekd_month', $month->modify( '-1 month' )->format( 'Y-m' ), $page_url );
-	$next_url = add_query_arg( 'ekd_month', $month->modify( '+1 month' )->format( 'Y-m' ), $page_url );
+	$prev_month = $month->modify( '-1 month' );
+	$prev_url   = add_query_arg( 'ekd_month', $prev_month->format( 'Y-m' ), $page_url );
+	$next_url   = add_query_arg( 'ekd_month', $month->modify( '+1 month' )->format( 'Y-m' ), $page_url );
+	$today_url  = add_query_arg( 'ekd_month', substr( $today, 0, 7 ), $page_url );
+	$prev_days  = (int) $prev_month->format( 't' );
+	$cells      = $pad + $days;
+	$trail      = ( 7 - ( $cells % 7 ) ) % 7;
 
 	static $instance = 0;
 	++$instance;
 	$list_id = 'ekdiloseis-list-' . $instance;
 
-	$copy     = ekdiloseis_calendar_copy();
-	$json     = ekdiloseis_calendar_json( $events );
+	$copy = ekdiloseis_calendar_copy();
+	$json = ekdiloseis_calendar_json(
+		$events,
+		array(
+			'weekdaysFull'   => $copy['weekdaysFull'],
+			'monthsGenitive' => array_values( $copy['monthsGenitive'] ),
+			'countOne'       => $copy['countOne'],
+			'countMany'      => $copy['countMany'],
+			'openEvent'      => $copy['openEvent'],
+		)
+	);
 	$weekdays = $copy['weekdays'];
 
 	ob_start();
@@ -1034,41 +1141,54 @@ function ekdiloseis_shortcode() {
 	<div class="ekdiloseis <?php echo esc_attr( ekdiloseis_layout_class() ); ?>" data-month="<?php echo esc_attr( $month->format( 'Y-m' ) ); ?>"<?php echo ekdiloseis_root_style_attr( 'custom' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in helper. ?>>
 		<div class="ekdiloseis__main">
 		<nav class="ekdiloseis__nav" aria-label="Change month">
-			<a class="ekdiloseis__navlink" rel="prev" href="<?php echo esc_url( $prev_url ); ?>" aria-label="<?php echo esc_attr( $copy['previousMonth'] ); ?>" title="<?php echo esc_attr( $copy['previousMonth'] ); ?>"><span aria-hidden="true">&lsaquo;</span></a>
+			<span class="ekdiloseis__arrows">
+				<a class="ekdiloseis__navlink" rel="prev" href="<?php echo esc_url( $prev_url ); ?>" aria-label="<?php echo esc_attr( $copy['previousMonth'] ); ?>" title="<?php echo esc_attr( $copy['previousMonth'] ); ?>"><?php echo ekdiloseis_svg_icon( 'chevron-left' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- static markup. ?></a>
+				<a class="ekdiloseis__navlink" rel="next" href="<?php echo esc_url( $next_url ); ?>" aria-label="<?php echo esc_attr( $copy['nextMonth'] ); ?>" title="<?php echo esc_attr( $copy['nextMonth'] ); ?>"><?php echo ekdiloseis_svg_icon( 'chevron-right' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- static markup. ?></a>
+			</span>
 			<h2 class="ekdiloseis__title"><?php echo esc_html( $month_label . ' ' . $year ); ?></h2>
-			<a class="ekdiloseis__navlink" rel="next" href="<?php echo esc_url( $next_url ); ?>" aria-label="<?php echo esc_attr( $copy['nextMonth'] ); ?>" title="<?php echo esc_attr( $copy['nextMonth'] ); ?>"><span aria-hidden="true">&rsaquo;</span></a>
+			<a class="ekdiloseis__today" href="<?php echo esc_url( $today_url ); ?>" data-today="<?php echo esc_attr( $today ); ?>"><?php echo esc_html( $copy['today'] ); ?></a>
 		</nav>
 		<div class="ekdiloseis__grid">
 			<?php foreach ( $weekdays as $weekday ) : ?>
 				<div class="ekdiloseis__dow" aria-hidden="true"><?php echo esc_html( $weekday ); ?></div>
 			<?php endforeach; ?>
-			<?php for ( $i = 0; $i < $pad; $i++ ) : ?>
-				<span class="ekdiloseis__pad" aria-hidden="true"></span>
+			<?php for ( $i = $pad; $i > 0; $i-- ) : ?>
+				<span class="ekdiloseis__day ekdiloseis__day--out" aria-hidden="true"><span class="ekdiloseis__num"><?php echo esc_html( (string) ( $prev_days - $i + 1 ) ); ?></span></span>
 			<?php endfor; ?>
 			<?php for ( $day = 1; $day <= $days; $day++ ) : ?>
 				<?php
 				$date    = sprintf( '%04d-%02d-%02d', $year, $month_num, $day );
 				$colors  = isset( $marked[ $date ] ) && is_array( $marked[ $date ] ) ? $marked[ $date ] : array();
 				$has     = ! empty( $colors );
-				$classes = 'ekdiloseis__day' . ( $has ? ' ekdiloseis__day--has' : '' );
+				$classes = 'ekdiloseis__day' . ( $has ? ' ekdiloseis__day--has' : '' ) . ( $today === $date ? ' is-today' : '' );
 				$label   = sprintf( '%d %s %d', $day, $genitive, $year );
 				$label  .= $has ? ', ' . $copy['withEvents'] : ', ' . $copy['withoutEvents'];
 				?>
-				<button type="button" class="<?php echo esc_attr( $classes ); ?>" data-date="<?php echo esc_attr( $date ); ?>" data-has="<?php echo $has ? '1' : '0'; ?>" aria-pressed="false" aria-controls="<?php echo esc_attr( $list_id ); ?>" aria-label="<?php echo esc_attr( $label ); ?>">
+				<button type="button" class="<?php echo esc_attr( $classes ); ?>" data-date="<?php echo esc_attr( $date ); ?>" data-has="<?php echo $has ? '1' : '0'; ?>" aria-pressed="false" aria-controls="<?php echo esc_attr( $list_id ); ?>" aria-label="<?php echo esc_attr( $label ); ?>"<?php echo $today === $date ? ' aria-current="date"' : ''; ?>>
 					<span class="ekdiloseis__num"><?php echo esc_html( (string) $day ); ?></span>
-					<?php if ( $has ) : ?>
-						<span class="ekdiloseis__dots" aria-hidden="true">
-							<?php foreach ( $colors as $dot_color ) : ?>
-								<span class="ekdiloseis__dot" style="background-color: <?php echo esc_attr( $dot_color ); ?>"></span>
-							<?php endforeach; ?>
-						</span>
-					<?php endif; ?>
+					<span class="ekdiloseis__dots" aria-hidden="true">
+						<?php foreach ( $colors as $dot_color ) : ?>
+							<span class="ekdiloseis__dot" style="background-color: <?php echo esc_attr( $dot_color ); ?>"></span>
+						<?php endforeach; ?>
+					</span>
 				</button>
 			<?php endfor; ?>
+			<?php for ( $i = 1; $i <= $trail; $i++ ) : ?>
+				<span class="ekdiloseis__day ekdiloseis__day--out" aria-hidden="true"><span class="ekdiloseis__num"><?php echo esc_html( (string) $i ); ?></span></span>
+			<?php endfor; ?>
 		</div>
+		<?php if ( $legend ) : ?>
+			<ul class="ekdiloseis__legend" aria-label="<?php echo esc_attr( $copy['legend'] ); ?>">
+				<?php foreach ( $legend as $item ) : ?>
+					<li class="ekdiloseis__legend-item"><span class="ekdiloseis__dot" style="background-color: <?php echo esc_attr( $item['color'] ); ?>" aria-hidden="true"></span><?php echo esc_html( $item['name'] ); ?></li>
+				<?php endforeach; ?>
+			</ul>
+		<?php endif; ?>
 		</div>
 		<div class="ekdiloseis__list" id="<?php echo esc_attr( $list_id ); ?>" aria-live="polite">
-			<p class="ekdiloseis__hint"><?php echo esc_html( $copy['hint'] ); ?></p>
+			<div class="ekdiloseis__dayhead">
+				<p class="ekdiloseis__hint"><?php echo esc_html( $copy['hint'] ); ?></p>
+			</div>
 		</div>
 		<script type="application/json" class="ekdiloseis__data"><?php echo $json; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- JSON_HEX_* encoded. ?></script>
 	</div>
