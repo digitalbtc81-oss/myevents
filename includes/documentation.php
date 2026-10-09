@@ -60,7 +60,8 @@ function ekdiloseis_render_docs_page() {
 			array(
 				'Open Events, then Add New. Set the title, the content, and the featured image.',
 				'In Schedule, enter Start and End as a date plus a time. The date is dd/mm/yyyy (dd/mm/yy is also accepted). The time is 24-hour HH:MM. Seconds are optional; if you omit them they are stored as 00.',
-				'The values are stored as Y-m-d H:i:s, using the site timezone (Europe/Athens) as wall-clock time. End must be after start. If the date or time is invalid, or end is not after start, the range is not saved and the previous start and end stay as they were. Color and icon on the same screen are saved on their own.',
+				'The values are stored as Y-m-d H:i:s, using the site timezone (Europe/Athens) as wall-clock time. End must be after start. If the date or time is invalid, or end is not after start, the range is not saved and the previous start and end stay as they were. Color, icon, and location on the same screen are saved on their own.',
+				'Location (optional) is a plain-text place, for example Athens or a venue name. It is stored in the event_location post meta, without HTML, up to 200 characters. Leave it empty for no location. The Default calendar shows it on the event card, next to a pin icon, only when it is set.',
 				'The events list has a Start column (day/month/year and HH:MM) that can be sorted.',
 			)
 		);
@@ -96,8 +97,9 @@ function ekdiloseis_render_docs_page() {
 		ekdiloseis_docs_section(
 			'Today and opening an event',
 			array(
-				'Today follows the site timezone. If that date has events, the day list opens for today when the calendar loads. No click is required. If today has no events, the list stays on its hint until a day is clicked.',
-				'In the day list, the event title is a link to the event. On FullCalendar, Toast UI Calendar, Event Calendar, and Schedule-X, the month shows an event chip; clicking that chip opens the event. Clicking the day itself still filters the list to events that overlap that day. The built-in calendar marks days with color dots and has no event chip; a day click filters the list. If an event has no public URL, a chip click filters the list instead of leaving the page.',
+				'Today follows the site timezone. If that date has events, the day list opens for today when the calendar loads. No click is required. If today has no events, the list stays on its hint until a day is clicked. The Default calendar is the exception: when the current month is shown it always selects today, and shows the empty-day text if today has no events. Its Today button returns to the current month and selects today.',
+				'On the Default calendar the day list starts with the full date and the number of scheduled events. Each event is a card with the media square, the category, the title, the time, the location when set, a short excerpt, and an arrow to the event. With List media set to Featured image and no image on the event, the card shows the category icon box instead (a calendar icon).',
+				'In the day list, the event title is a link to the event. On FullCalendar, Toast UI Calendar, Event Calendar, and Schedule-X, the month shows an event chip; clicking that chip opens the event. Clicking the day itself still filters the list to events that overlap that day. The built-in calendar marks days with color dots and has no event chip; a day click filters the list. Below its month it shows a legend of the categories that have events that month. If an event has no public URL, a chip click filters the list instead of leaving the page.',
 			)
 		);
 		ekdiloseis_docs_section(

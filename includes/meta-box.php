@@ -158,6 +158,44 @@ function ekdiloseis_posted_text( $key ) {
 }
 
 /**
+ * Event location: plain text, single line, at most 200 characters. Empty means no location.
+ *
+ * @param mixed $value Raw value.
+ * @return string
+ */
+function ekdiloseis_sanitize_location( $value ) {
+	if ( ! is_string( $value ) ) {
+		return '';
+	}
+	$value = trim( sanitize_text_field( $value ) );
+	if ( function_exists( 'mb_substr' ) ) {
+		return mb_substr( $value, 0, 200 );
+	}
+	return substr( $value, 0, 200 );
+}
+
+/**
+ * Register event_location so it is sanitized however it is written.
+ */
+function ekdiloseis_register_location_meta() {
+	register_post_meta(
+		'ekdilosi',
+		'event_location',
+		array(
+			'type'              => 'string',
+			'single'            => true,
+			'show_in_rest'      => true,
+			'sanitize_callback' => 'ekdiloseis_sanitize_location',
+			'auth_callback'     => static function ( $allowed, $meta_key, $post_id ) {
+				unset( $allowed, $meta_key );
+				return current_user_can( 'edit_post', (int) $post_id );
+			},
+		)
+	);
+}
+add_action( 'init', 'ekdiloseis_register_location_meta' );
+
+/**
  * Add the schedule meta box.
  *
  * @param string  $post_type Post type.
@@ -201,6 +239,8 @@ function ekdiloseis_render_meta_box( $post ) {
 	$picker       = $has_override ? $event_color : '#6b7280';
 	$icon_raw     = get_post_meta( $post->ID, 'event_icon', true );
 	$event_icon   = ekdiloseis_sanitize_icon_class( is_string( $icon_raw ) ? $icon_raw : '' );
+	$location_raw = get_post_meta( $post->ID, 'event_location', true );
+	$location     = ekdiloseis_sanitize_location( is_string( $location_raw ) ? $location_raw : '' );
 	wp_nonce_field( 'ekdiloseis_save_event', 'ekdiloseis_nonce' );
 	?>
 	<p>
@@ -214,6 +254,12 @@ function ekdiloseis_render_meta_box( $post ) {
 		<input type="text" id="ekdiloseis_event_end_time" name="ekdiloseis_event_end_time" value="<?php echo esc_attr( ekdiloseis_admin_time_value( $end ) ); ?>" placeholder="HH:MM" inputmode="numeric" autocomplete="off" maxlength="8" size="8" aria-label="End time">
 		<br>
 		<span class="description"><?php echo esc_html( 'Date as dd/mm/yyyy or dd/mm/yy, then the time (HH:MM).' ); ?></span>
+	</p>
+	<p>
+		<label for="ekdiloseis_event_location"><strong><?php echo esc_html( 'Location (optional)' ); ?></strong></label><br>
+		<input type="text" id="ekdiloseis_event_location" name="ekdiloseis_event_location" value="<?php echo esc_attr( $location ); ?>" placeholder="<?php echo esc_attr( 'e.g. Athens' ); ?>" class="regular-text" maxlength="200">
+		<br>
+		<span class="description"><?php echo esc_html( 'Plain text. Shown on the event card of the Default calendar when not empty.' ); ?></span>
 	</p>
 	<p>
 		<label>
@@ -327,6 +373,13 @@ function ekdiloseis_save_event_meta( $post_id ) {
 		delete_post_meta( $post_id, 'event_icon' );
 	} else {
 		update_post_meta( $post_id, 'event_icon', $event_icon );
+	}
+
+	$location = ekdiloseis_sanitize_location( ekdiloseis_posted_text( 'ekdiloseis_event_location' ) );
+	if ( '' === $location ) {
+		delete_post_meta( $post_id, 'event_location' );
+	} else {
+		update_post_meta( $post_id, 'event_location', $location );
 	}
 
 	$start = ekdiloseis_submitted_datetime(
