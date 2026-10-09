@@ -352,17 +352,30 @@ function ekdiloseis_requested_month() {
 	if ( isset( $_GET['ekd_month'] ) && is_string( $_GET['ekd_month'] ) ) {
 		$raw = sanitize_text_field( wp_unslash( $_GET['ekd_month'] ) );
 	}
-	if ( preg_match( '/^(\d{4})-(\d{2})$/', $raw, $matches ) ) {
-		$year  = (int) $matches[1];
-		$month = (int) $matches[2];
-		if ( $year >= 1970 && $year <= 2100 && $month >= 1 && $month <= 12 ) {
-			$built = DateTimeImmutable::createFromFormat( '!Y-m-d', sprintf( '%04d-%02d-01', $year, $month ), $tz );
-			if ( $built instanceof DateTimeImmutable ) {
-				return $built;
-			}
-		}
+	$built = ekdiloseis_parse_month( $raw );
+	if ( null !== $built ) {
+		return $built;
 	}
 	return $now->modify( 'first day of this month' )->setTime( 0, 0, 0 );
+}
+
+/**
+ * Strict YYYY-MM (1970-01 to 2100-12) to the first day of that month in Athens, or null.
+ *
+ * @param mixed $raw Raw value.
+ * @return DateTimeImmutable|null
+ */
+function ekdiloseis_parse_month( $raw ) {
+	if ( ! is_string( $raw ) || ! preg_match( '/^(\d{4})-(\d{2})$/D', $raw, $matches ) ) {
+		return null;
+	}
+	$year  = (int) $matches[1];
+	$month = (int) $matches[2];
+	if ( $year < 1970 || $year > 2100 || $month < 1 || $month > 12 ) {
+		return null;
+	}
+	$built = DateTimeImmutable::createFromFormat( '!Y-m-d', sprintf( '%04d-%02d-01', $year, $month ), new DateTimeZone( 'Europe/Athens' ) );
+	return $built instanceof DateTimeImmutable ? $built : null;
 }
 
 /**
@@ -1058,14 +1071,15 @@ function ekdiloseis_event_excerpt( $post_id ) {
 }
 
 /**
- * Default (built-in) calendar: month card with legend, and a day panel with event cards.
+ * Build the Default calendar for one month: the inner markup of the month card and the JSON the day panel uses.
+ * Shared by the shortcode and the month AJAX endpoint, so both render exactly the same card.
  *
- * @return string
+ * @param DateTimeImmutable $month    First day of the month (Europe/Athens).
+ * @param string            $page_url Page the no-JS month links point to (without ekd_month).
+ * @param string            $list_id  Id of the day panel the day buttons control.
+ * @return array{month: string, title: string, main: string, payload: array<string, mixed>, json: string}
  */
-function ekdiloseis_render_custom() {
-	ekdiloseis_enqueue_assets();
-
-	$month       = ekdiloseis_requested_month();
+function ekdiloseis_custom_month_parts( DateTimeImmutable $month, $page_url, $list_id ) {
 	$events      = ekdiloseis_events_for_month( $month );
 	$year        = (int) $month->format( 'Y' );
 	$month_num   = (int) $month->format( 'n' );
@@ -1107,10 +1121,6 @@ function ekdiloseis_render_custom() {
 		}
 	}
 
-	$page_url = get_permalink();
-	if ( ! is_string( $page_url ) || '' === $page_url ) {
-		$page_url = home_url( '/' );
-	}
 	$prev_month = $month->modify( '-1 month' );
 	$prev_url   = add_query_arg( 'ekd_month', $prev_month->format( 'Y-m' ), $page_url );
 	$next_url   = add_query_arg( 'ekd_month', $month->modify( '+1 month' )->format( 'Y-m' ), $page_url );
@@ -1119,34 +1129,32 @@ function ekdiloseis_render_custom() {
 	$cells      = $pad + $days;
 	$trail      = ( 7 - ( $cells % 7 ) ) % 7;
 
-	static $instance = 0;
-	++$instance;
-	$list_id = 'ekdiloseis-list-' . $instance;
-
-	$copy = ekdiloseis_calendar_copy();
-	$json = ekdiloseis_calendar_json(
-		$events,
-		array(
-			'weekdaysFull'   => $copy['weekdaysFull'],
-			'monthsGenitive' => array_values( $copy['monthsGenitive'] ),
-			'countOne'       => $copy['countOne'],
-			'countMany'      => $copy['countMany'],
-			'openEvent'      => $copy['openEvent'],
-		)
+	$copy    = ekdiloseis_calendar_copy();
+	$extra   = array(
+		'weekdaysFull'   => $copy['weekdaysFull'],
+		'monthsGenitive' => array_values( $copy['monthsGenitive'] ),
+		'countOne'       => $copy['countOne'],
+		'countMany'      => $copy['countMany'],
+		'openEvent'      => $copy['openEvent'],
+		'month'          => $month->format( 'Y-m' ),
 	);
+	$json    = ekdiloseis_calendar_json( $events, $extra );
+	$payload = json_decode( $json, true );
+	if ( ! is_array( $payload ) ) {
+		$payload = array();
+	}
 	$weekdays = $copy['weekdays'];
+	$title    = $month_label . ' ' . $year;
 
 	ob_start();
 	?>
-	<div class="ekdiloseis <?php echo esc_attr( ekdiloseis_layout_class() ); ?>" data-month="<?php echo esc_attr( $month->format( 'Y-m' ) ); ?>"<?php echo ekdiloseis_root_style_attr( 'custom' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in helper. ?>>
-		<div class="ekdiloseis__main">
 		<nav class="ekdiloseis__nav" aria-label="Change month">
 			<span class="ekdiloseis__arrows">
-				<a class="ekdiloseis__navlink" rel="prev" href="<?php echo esc_url( $prev_url ); ?>" aria-label="<?php echo esc_attr( $copy['previousMonth'] ); ?>" title="<?php echo esc_attr( $copy['previousMonth'] ); ?>"><?php echo ekdiloseis_svg_icon( 'chevron-left' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- static markup. ?></a>
-				<a class="ekdiloseis__navlink" rel="next" href="<?php echo esc_url( $next_url ); ?>" aria-label="<?php echo esc_attr( $copy['nextMonth'] ); ?>" title="<?php echo esc_attr( $copy['nextMonth'] ); ?>"><?php echo ekdiloseis_svg_icon( 'chevron-right' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- static markup. ?></a>
+				<a class="ekdiloseis__navlink" rel="prev" data-month="<?php echo esc_attr( $prev_month->format( 'Y-m' ) ); ?>" href="<?php echo esc_url( $prev_url ); ?>" aria-label="<?php echo esc_attr( $copy['previousMonth'] ); ?>" title="<?php echo esc_attr( $copy['previousMonth'] ); ?>"><?php echo ekdiloseis_svg_icon( 'chevron-left' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- static markup. ?></a>
+				<a class="ekdiloseis__navlink" rel="next" data-month="<?php echo esc_attr( $month->modify( '+1 month' )->format( 'Y-m' ) ); ?>" href="<?php echo esc_url( $next_url ); ?>" aria-label="<?php echo esc_attr( $copy['nextMonth'] ); ?>" title="<?php echo esc_attr( $copy['nextMonth'] ); ?>"><?php echo ekdiloseis_svg_icon( 'chevron-right' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- static markup. ?></a>
 			</span>
-			<h2 class="ekdiloseis__title"><?php echo esc_html( $month_label . ' ' . $year ); ?></h2>
-			<a class="ekdiloseis__today" href="<?php echo esc_url( $today_url ); ?>" data-today="<?php echo esc_attr( $today ); ?>"><?php echo esc_html( $copy['today'] ); ?></a>
+			<h2 class="ekdiloseis__title"><?php echo esc_html( $title ); ?></h2>
+			<a class="ekdiloseis__today" href="<?php echo esc_url( $today_url ); ?>" data-month="<?php echo esc_attr( substr( $today, 0, 7 ) ); ?>" data-today="<?php echo esc_attr( $today ); ?>"><?php echo esc_html( $copy['today'] ); ?></a>
 		</nav>
 		<div class="ekdiloseis__grid">
 			<?php foreach ( $weekdays as $weekday ) : ?>
@@ -1184,15 +1192,91 @@ function ekdiloseis_render_custom() {
 				<?php endforeach; ?>
 			</ul>
 		<?php endif; ?>
+	<?php
+	return array(
+		'month'   => $month->format( 'Y-m' ),
+		'title'   => $title,
+		'main'    => (string) ob_get_clean(),
+		'payload' => $payload,
+		'json'    => $json,
+	);
+}
+
+/**
+ * Default (built-in) calendar: month card with legend, and a day panel with event cards.
+ *
+ * @return string
+ */
+function ekdiloseis_render_custom() {
+	ekdiloseis_enqueue_assets();
+
+	$month    = ekdiloseis_requested_month();
+	$page_url = get_permalink();
+	if ( ! is_string( $page_url ) || '' === $page_url ) {
+		$page_url = home_url( '/' );
+	}
+	$page_url = remove_query_arg( 'ekd_month', $page_url );
+
+	static $instance = 0;
+	++$instance;
+	$list_id = 'ekdiloseis-list-' . $instance;
+
+	$parts = ekdiloseis_custom_month_parts( $month, $page_url, $list_id );
+	$copy  = ekdiloseis_calendar_copy();
+
+	ob_start();
+	?>
+	<div class="ekdiloseis <?php echo esc_attr( ekdiloseis_layout_class() ); ?>" data-month="<?php echo esc_attr( $parts['month'] ); ?>" data-ajax-url="<?php echo esc_url( admin_url( 'admin-ajax.php' ) ); ?>" data-page-url="<?php echo esc_url( $page_url ); ?>"<?php echo ekdiloseis_root_style_attr( 'custom' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in helper. ?>>
+		<div class="ekdiloseis__main">
+		<?php echo $parts['main']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped while built. ?>
 		</div>
 		<div class="ekdiloseis__list" id="<?php echo esc_attr( $list_id ); ?>" aria-live="polite">
 			<div class="ekdiloseis__dayhead">
 				<p class="ekdiloseis__hint"><?php echo esc_html( $copy['hint'] ); ?></p>
 			</div>
 		</div>
-		<script type="application/json" class="ekdiloseis__data"><?php echo $json; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- JSON_HEX_* encoded. ?></script>
+		<script type="application/json" class="ekdiloseis__data"><?php echo $parts['json']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- JSON_HEX_* encoded. ?></script>
 	</div>
 	<?php
 	return (string) ob_get_clean();
 }
+
+/**
+ * Public, read-only AJAX endpoint for the Default calendar: one month card and its event data.
+ * action=ekdiloseis_month, month=YYYY-MM (required, strict), list_id=ekdiloseis-list-N, page_url=same-site URL.
+ * No nonce: it only reads published events (the same data the page shows) and changes nothing.
+ */
+function ekdiloseis_ajax_month() {
+	// phpcs:disable WordPress.Security.NonceVerification.Recommended -- public read-only endpoint.
+	$raw   = isset( $_GET['month'] ) && is_string( $_GET['month'] ) ? wp_unslash( $_GET['month'] ) : '';
+	$month = ekdiloseis_parse_month( $raw );
+	if ( null === $month ) {
+		wp_send_json_error( array( 'message' => 'Invalid month. Use YYYY-MM.' ), 400 );
+	}
+
+	$list_id = isset( $_GET['list_id'] ) && is_string( $_GET['list_id'] ) ? wp_unslash( $_GET['list_id'] ) : '';
+	if ( ! preg_match( '/^ekdiloseis-list-\d{1,4}$/', $list_id ) ) {
+		$list_id = 'ekdiloseis-list-1';
+	}
+
+	$home     = home_url( '/' );
+	$page_url = isset( $_GET['page_url'] ) && is_string( $_GET['page_url'] ) ? esc_url_raw( wp_unslash( $_GET['page_url'] ) ) : '';
+	// Only links back to this site; anything else falls back to the home page.
+	$page_url = '' !== $page_url ? wp_validate_redirect( $page_url, $home ) : $home;
+	$page_url = remove_query_arg( 'ekd_month', $page_url );
+	// phpcs:enable
+
+	$parts = ekdiloseis_custom_month_parts( $month, $page_url, $list_id );
+	nocache_headers();
+	wp_send_json_success(
+		array(
+			'month' => $parts['month'],
+			'title' => $parts['title'],
+			'html'  => $parts['main'],
+			'data'  => $parts['payload'],
+		)
+	);
+}
+add_action( 'wp_ajax_ekdiloseis_month', 'ekdiloseis_ajax_month' );
+add_action( 'wp_ajax_nopriv_ekdiloseis_month', 'ekdiloseis_ajax_month' );
 add_shortcode( 'myevents', 'ekdiloseis_shortcode' );

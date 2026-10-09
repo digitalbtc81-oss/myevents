@@ -321,51 +321,215 @@
 		list.appendChild(cards);
 	}
 
-	function boot(root) {
+	var MONTH_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
+
+	function parseData(root) {
 		var dataEl = root.querySelector(".ekdiloseis__data");
 		if (!dataEl) {
-			return;
+			return null;
 		}
-		var data;
 		try {
-			data = JSON.parse(dataEl.textContent || "");
+			return JSON.parse(dataEl.textContent || "");
 		} catch (error) {
+			return null;
+		}
+	}
+
+	function showHint(root, data) {
+		var list = root.querySelector(".ekdiloseis__list");
+		if (!list) {
 			return;
 		}
-		var buttons = root.querySelectorAll("button.ekdiloseis__day");
-		Array.prototype.forEach.call(buttons, function (button) {
-			button.addEventListener("click", function () {
-				var day = button.getAttribute("data-date");
-				if (!day) {
+		while (list.firstChild) {
+			list.removeChild(list.firstChild);
+		}
+		var head = document.createElement("div");
+		head.className = "ekdiloseis__dayhead";
+		var hint = document.createElement("p");
+		hint.className = "ekdiloseis__hint";
+		hint.textContent = data.hint || "Select a day to view events.";
+		head.appendChild(hint);
+		list.appendChild(head);
+	}
+
+	function todayButtonOf(root, data) {
+		var today = todayIso(data);
+		return today ? root.querySelector('button.ekdiloseis__day[data-date="' + today + '"]') : null;
+	}
+
+	/* Day panel for a freshly shown month: today in the current month, otherwise the hint. */
+	function resetPanel(root, state) {
+		var todayButton = todayButtonOf(root, state.data);
+		if (todayButton) {
+			render(root, state.data, todayIso(state.data), todayButton);
+		} else {
+			showHint(root, state.data);
+		}
+	}
+
+	function monthFromUrl(href) {
+		try {
+			var value = new URL(href, window.location.href).searchParams.get("ekd_month");
+			return value && MONTH_RE.test(value) ? value : "";
+		} catch (error) {
+			return "";
+		}
+	}
+
+	function currentMonth(state) {
+		return todayIso(state.data).slice(0, 7);
+	}
+
+	/* Fetch one month from the public endpoint and swap only the month card. */
+	function loadMonth(root, state, month, options) {
+		options = options || {};
+		var ajaxUrl = root.getAttribute("data-ajax-url");
+		var main = root.querySelector(".ekdiloseis__main");
+		var list = root.querySelector(".ekdiloseis__list");
+		if (!ajaxUrl || !main || !MONTH_RE.test(month) || !window.fetch) {
+			return Promise.reject(new Error("unavailable"));
+		}
+		var url = new URL(ajaxUrl, window.location.href);
+		url.searchParams.set("action", "ekdiloseis_month");
+		url.searchParams.set("month", month);
+		url.searchParams.set("list_id", list && list.id ? list.id : "");
+		url.searchParams.set("page_url", root.getAttribute("data-page-url") || window.location.href);
+
+		var token = ++state.token;
+		root.classList.add("is-loading");
+		main.setAttribute("aria-busy", "true");
+
+		return fetch(url.toString(), { credentials: "same-origin", headers: { Accept: "application/json" } })
+			.then(function (response) {
+				if (!response.ok) {
+					throw new Error("HTTP " + response.status);
+				}
+				return response.json();
+			})
+			.then(function (json) {
+				if (token !== state.token) {
 					return;
 				}
-				render(root, data, day, button);
+				if (!json || !json.success || !json.data || typeof json.data.html !== "string" || !json.data.data) {
+					throw new Error("bad response");
+				}
+				main.innerHTML = json.data.html; /* Server-rendered, escaped markup from our own endpoint. */
+				state.data = json.data.data;
+				root.setAttribute("data-month", json.data.month || month);
+				var dataEl = root.querySelector(".ekdiloseis__data");
+				if (dataEl) {
+					dataEl.textContent = JSON.stringify(state.data);
+				}
+				resetPanel(root, state);
+				if (options.focus) {
+					var target = root.querySelector(options.focus);
+					if (target) {
+						target.focus({ preventScroll: true });
+					}
+				}
+			})
+			.finally(function () {
+				if (token === state.token) {
+					root.classList.remove("is-loading");
+					main.removeAttribute("aria-busy");
+				}
 			});
-		});
-		var today = todayIso(data);
-		var todayButton = null;
-		Array.prototype.forEach.call(buttons, function (button) {
-			if (button.getAttribute("data-date") === today) {
-				todayButton = button;
+	}
+
+	function pushMonth(month) {
+		if (!window.history || !window.history.pushState) {
+			return;
+		}
+		var url = new URL(window.location.href);
+		if (url.searchParams.get("ekd_month") === month) {
+			return;
+		}
+		url.searchParams.set("ekd_month", month);
+		window.history.pushState({ ekdMonth: month }, "", url.toString());
+	}
+
+	var instances = [];
+
+	function boot(root) {
+		var data = parseData(root);
+		if (!data) {
+			return;
+		}
+		var state = { data: data, token: 0 };
+		instances.push({ root: root, state: state });
+
+		/* Delegated: survives the month card being replaced. Scoped to this root only. */
+		root.addEventListener("click", function (event) {
+			var target = event.target instanceof Element ? event.target : null;
+			if (!target) {
+				return;
 			}
-		});
-		var todayLink = root.querySelector(".ekdiloseis__today");
-		if (todayLink && todayButton) {
-			todayLink.addEventListener("click", function (event) {
-				event.preventDefault();
-				render(root, data, today, todayButton);
-				todayButton.focus();
+			var dayButton = target.closest("button.ekdiloseis__day");
+			if (dayButton && root.contains(dayButton)) {
+				var day = dayButton.getAttribute("data-date");
+				if (day) {
+					render(root, state.data, day, dayButton);
+				}
+				return;
+			}
+
+			var link = target.closest("a.ekdiloseis__navlink, a.ekdiloseis__today");
+			if (!link || !root.contains(link)) {
+				return;
+			}
+			if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+				return; /* New tab / window keeps the plain link. */
+			}
+			var isToday = link.classList.contains("ekdiloseis__today");
+			var shown = root.getAttribute("data-month") || state.data.month || "";
+			var month = link.getAttribute("data-month") || monthFromUrl(link.href);
+			if (isToday) {
+				month = currentMonth(state) || month;
+				if (month === shown) {
+					var todayButton = todayButtonOf(root, state.data);
+					if (todayButton) {
+						event.preventDefault();
+						render(root, state.data, todayIso(state.data), todayButton);
+						todayButton.focus();
+					}
+					return;
+				}
+			}
+			if (!MONTH_RE.test(month)) {
+				return;
+			}
+			event.preventDefault();
+			var focus = isToday ? "button.ekdiloseis__day.is-selected" : 'a.ekdiloseis__navlink[rel="' + link.getAttribute("rel") + '"]';
+			var href = link.href;
+			loadMonth(root, state, month, { focus: focus }).then(function () {
+				pushMonth(month);
+			}, function () {
+				window.location.href = href; /* Fall back to the normal page load. */
 			});
-		}
-		/* Current month: always open today, with the empty text when it has no events. */
-		if (todayButton) {
-			render(root, data, today, todayButton);
-		}
+		});
+
+		resetPanel(root, state);
+	}
+
+	function onPopState() {
+		var month = monthFromUrl(window.location.href);
+		instances.forEach(function (item) {
+			var target = month || currentMonth(item.state);
+			if (!target || target === item.root.getAttribute("data-month")) {
+				return;
+			}
+			loadMonth(item.root, item.state, target).catch(function () {
+				window.location.reload();
+			});
+		});
 	}
 
 	function init() {
 		var roots = document.querySelectorAll(".ekdiloseis");
 		Array.prototype.forEach.call(roots, boot);
+		if (instances.length) {
+			window.addEventListener("popstate", onPopState);
+		}
 	}
 
 	if (document.readyState === "loading") {
