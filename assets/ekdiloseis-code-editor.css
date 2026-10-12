@@ -1,0 +1,19 @@
+.ekd-cm-dark.CodeMirror{background:#0d0d0d;color:#e6e6e6;border:1px solid #333;border-radius:6px;height:320px;font-family:Menlo,Consolas,Monaco,monospace;font-size:13px;line-height:1.55}
+.ekd-cm-dark .CodeMirror-gutters{background:#151515;border-right:1px solid #2a2a2a}
+.ekd-cm-dark .CodeMirror-linenumber{color:#6b6b6b}
+.ekd-cm-dark .CodeMirror-cursor{border-left:2px solid #ffcc00}
+.ekd-cm-dark .CodeMirror-selected,.ekd-cm-dark.CodeMirror-focused .CodeMirror-selected{background:#264f78}
+.ekd-cm-dark .CodeMirror-line::selection,.ekd-cm-dark .CodeMirror-line>span::selection,.ekd-cm-dark .CodeMirror-line>span>span::selection{background:#264f78}
+.ekd-cm-dark .CodeMirror-activeline-background{background:#1a1a1a}
+.ekd-cm-dark .CodeMirror-matchingbracket{color:#fff!important;background:#3a3a3a;outline:1px solid #888}
+.ekd-cm-dark .cm-tag,.ekd-cm-dark .cm-qualifier,.ekd-cm-dark .cm-builtin{color:#f7768e}
+.ekd-cm-dark .cm-property{color:#7dcfff}
+.ekd-cm-dark .cm-atom,.ekd-cm-dark .cm-keyword{color:#e0af68}
+.ekd-cm-dark .cm-variable-2,.ekd-cm-dark .cm-variable-3{color:#bb9af7}
+.ekd-cm-dark .cm-number{color:#ff9e64}
+.ekd-cm-dark .cm-string,.ekd-cm-dark .cm-string-2{color:#9ece6a}
+.ekd-cm-dark .cm-comment{color:#6a737d;font-style:italic}
+.ekd-cm-dark .cm-def{color:#c792ea}
+.ekd-cm-dark .cm-error{color:#ff5370;text-decoration:underline wavy #ff5370}
+.ekd-cm-dark .CodeMirror-lint-mark-error{background-image:none;border-bottom:2px wavy #ff5370}
+.ekd-cm-dark .CodeMirror-lint-markers{width:16px}

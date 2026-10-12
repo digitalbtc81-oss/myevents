@@ -1000,6 +1000,38 @@ function ekdiloseis_enqueue_settings_assets() {
 			true
 		);
 	}
+	ekdiloseis_enqueue_css_code_editor();
+}
+
+/**
+ * CodeMirror (WP core) for the Custom CSS field, with CSSLint and a dark theme.
+ */
+function ekdiloseis_enqueue_css_code_editor() {
+	$settings = wp_enqueue_code_editor(
+		array(
+			'type'       => 'text/css',
+			'codemirror' => array(
+				'lineNumbers'       => true,
+				'autoCloseBrackets' => true,
+				'matchBrackets'     => true,
+				'indentUnit'        => 2,
+				'tabSize'           => 2,
+			),
+		)
+	);
+	if ( false === $settings ) {
+		return; // User disabled syntax highlighting in their profile.
+	}
+	wp_enqueue_style( 'wp-codemirror' );
+	$css = EKDILOSEIS_DIR . 'assets/ekdiloseis-code-editor.css';
+	$js  = EKDILOSEIS_DIR . 'assets/ekdiloseis-code-editor.js';
+	if ( is_readable( $css ) ) {
+		wp_enqueue_style( 'ekdiloseis-code-editor', EKDILOSEIS_URL . 'assets/ekdiloseis-code-editor.css', array( 'wp-codemirror', 'code-editor' ), (string) filemtime( $css ) );
+	}
+	if ( is_readable( $js ) ) {
+		wp_enqueue_script( 'ekdiloseis-code-editor', EKDILOSEIS_URL . 'assets/ekdiloseis-code-editor.js', array( 'jquery', 'code-editor', 'csslint' ), (string) filemtime( $js ), true );
+		wp_add_inline_script( 'ekdiloseis-code-editor', 'window.ekdiloseisCodeEditor = ' . wp_json_encode( array( 'settings' => $settings ) ) . ';', 'before' );
+	}
 }
 
 /**
