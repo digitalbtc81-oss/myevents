@@ -608,7 +608,7 @@ function ekdiloseis_render_fullcalendar() {
 	ekdiloseis_enqueue_fullcalendar_assets();
 
 	$month  = ekdiloseis_requested_month();
-	$events = ekdiloseis_all_events();
+	$events = ekdiloseis_get_events();
 
 	static $instance = 0;
 	++$instance;
@@ -707,7 +707,7 @@ function ekdiloseis_render_toast() {
 	ekdiloseis_enqueue_toast_assets();
 
 	$month  = ekdiloseis_requested_month();
-	$events = ekdiloseis_all_events();
+	$events = ekdiloseis_get_events();
 
 	static $instance = 0;
 	++$instance;
@@ -824,7 +824,7 @@ function ekdiloseis_render_eventcalendar() {
 	ekdiloseis_enqueue_eventcalendar_assets();
 
 	$month  = ekdiloseis_requested_month();
-	$events = ekdiloseis_all_events();
+	$events = ekdiloseis_get_events();
 
 	static $instance = 0;
 	++$instance;
@@ -963,7 +963,7 @@ function ekdiloseis_render_schedulex() {
 	ekdiloseis_enqueue_schedulex_assets();
 
 	$month  = ekdiloseis_requested_month();
-	$events = ekdiloseis_all_events();
+	$events = ekdiloseis_get_events();
 
 	static $instance = 0;
 	++$instance;
@@ -1080,7 +1080,8 @@ function ekdiloseis_event_excerpt( $post_id ) {
  * @return array{month: string, title: string, main: string, payload: array<string, mixed>, json: string}
  */
 function ekdiloseis_custom_month_parts( DateTimeImmutable $month, $page_url, $list_id ) {
-	$events      = ekdiloseis_events_for_month( $month );
+	$events      = ekdiloseis_get_events( $month->format( 'Y-m-d H:i:s' ), $month->modify( 'first day of next month' )->format( 'Y-m-d H:i:s' ) );
+	$external    = ! ekdiloseis_source_is_default();
 	$year        = (int) $month->format( 'Y' );
 	$month_num   = (int) $month->format( 'n' );
 	$days        = (int) $month->format( 't' );
@@ -1092,6 +1093,17 @@ function ekdiloseis_custom_month_parts( DateTimeImmutable $month, $page_url, $li
 	// Card extras for this engine only: category badge, location, excerpt. Legend from the same categories.
 	$legend = array();
 	foreach ( $events as $index => $event ) {
+		if ( $external ) {
+			// Mapped post types already carry category, location and excerpt in the normalized event.
+			$name = isset( $event['category'] ) ? (string) $event['category'] : '';
+			if ( '' !== $name && ! isset( $legend[ $name ] ) ) {
+				$legend[ $name ] = array(
+					'name'  => $name,
+					'color' => (string) $event['color'],
+				);
+			}
+			continue;
+		}
 		$term = ekdiloseis_event_primary_term( (int) $event['id'] );
 		$events[ $index ]['category'] = $term ? html_entity_decode( $term->name, ENT_QUOTES, 'UTF-8' ) : '';
 		$location_raw                 = get_post_meta( (int) $event['id'], 'event_location', true );

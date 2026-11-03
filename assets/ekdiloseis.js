@@ -243,7 +243,14 @@
 		}
 		body.appendChild(title);
 
-		body.appendChild(metaLine("ekdiloseis__time", "clock", clock(event.start) + " \u2013 " + clock(event.end)));
+		if (Object.prototype.hasOwnProperty.call(event, "timeLabel")) {
+			/* Mapped post types: start time only, a range, or "All day". */
+			if (event.timeLabel) {
+				body.appendChild(metaLine("ekdiloseis__time", "clock", String(event.timeLabel).replace("\u2013", " \u2013 ")));
+			}
+		} else {
+			body.appendChild(metaLine("ekdiloseis__time", "clock", clock(event.start) + " \u2013 " + clock(event.end)));
+		}
 		if (event.location) {
 			body.appendChild(metaLine("ekdiloseis__location", "pin", String(event.location)));
 		}
