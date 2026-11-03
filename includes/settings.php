@@ -1001,6 +1001,7 @@ function ekdiloseis_enqueue_settings_assets() {
 		);
 	}
 	ekdiloseis_enqueue_css_code_editor();
+	ekdiloseis_enqueue_source_assets();
 }
 
 /**
@@ -1109,6 +1110,7 @@ function ekdiloseis_settings_transfer_keys() {
 		'ekdiloseis_list_media',
 		'ekdiloseis_styles',
 		'ekdiloseis_custom_css',
+		'ekdiloseis_source',
 	);
 }
 
@@ -1129,6 +1131,7 @@ function ekdiloseis_export_settings_payload() {
 		'ekdiloseis_list_media' => ekdiloseis_get_list_media(),
 		'ekdiloseis_styles'     => ekdiloseis_sanitize_styles( $styles ),
 		'ekdiloseis_custom_css' => ekdiloseis_get_custom_css(),
+		'ekdiloseis_source'     => ekdiloseis_get_source(),
 	);
 }
 
@@ -1181,7 +1184,8 @@ function ekdiloseis_parse_settings_import( $raw ) {
 	if ( $unknown ) {
 		return new WP_Error( 'ekdiloseis_import', 'The settings file contains unknown settings.' );
 	}
-	$missing = array_diff( $allowed, array_keys( $data ) );
+	// Data source (1.4.0+) is optional so files exported by older versions still import.
+	$missing = array_diff( $allowed, array_keys( $data ), array( 'ekdiloseis_source' ) );
 	if ( $missing ) {
 		return new WP_Error( 'ekdiloseis_import', 'The settings file has an unexpected shape.' );
 	}
@@ -1202,7 +1206,7 @@ function ekdiloseis_parse_settings_import( $raw ) {
 		return new WP_Error( 'ekdiloseis_import', 'The settings file has an unexpected shape.' );
 	}
 
-	return array(
+	$clean = array(
 		'ekdiloseis_engine'     => ekdiloseis_sanitize_engine( $data['ekdiloseis_engine'] ),
 		'ekdiloseis_locale'     => ekdiloseis_sanitize_locale( $data['ekdiloseis_locale'] ),
 		'ekdiloseis_layout'     => ekdiloseis_sanitize_layout( $data['ekdiloseis_layout'] ),
@@ -1210,6 +1214,13 @@ function ekdiloseis_parse_settings_import( $raw ) {
 		'ekdiloseis_styles'     => ekdiloseis_sanitize_styles( $data['ekdiloseis_styles'] ),
 		'ekdiloseis_custom_css' => ekdiloseis_sanitize_custom_css( $data['ekdiloseis_custom_css'] ),
 	);
+	if ( array_key_exists( 'ekdiloseis_source', $data ) ) {
+		if ( ! is_array( $data['ekdiloseis_source'] ) || ekdiloseis_is_json_list( $data['ekdiloseis_source'] ) ) {
+			return new WP_Error( 'ekdiloseis_import', 'The settings file has an unexpected shape.' );
+		}
+		$clean['ekdiloseis_source'] = ekdiloseis_sanitize_source( $data['ekdiloseis_source'] );
+	}
+	return $clean;
 }
 
 /**
@@ -1309,7 +1320,9 @@ function ekdiloseis_handle_import_settings() {
 	}
 
 	foreach ( ekdiloseis_settings_transfer_keys() as $key ) {
-		update_option( $key, $clean[ $key ] );
+		if ( array_key_exists( $key, $clean ) ) { // An older file without Data source keeps the current one.
+			update_option( $key, $clean[ $key ] );
+		}
 	}
 
 	ekdiloseis_redirect_settings_notice( 'Settings replaced.', 'success' );

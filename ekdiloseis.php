@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Events
  * Description: Events calendar. Shortcode: [myevents].
- * Version: 1.3.5
+ * Version: 1.4.0
  * Author: Events
  * Text Domain: ekdiloseis
  * Requires at least: 6.0
@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'EKDILOSEIS_VERSION', '1.3.5' );
+define( 'EKDILOSEIS_VERSION', '1.4.0' );
 define( 'EKDILOSEIS_FILE', __FILE__ );
 define( 'EKDILOSEIS_DIR', plugin_dir_path( __FILE__ ) );
 define( 'EKDILOSEIS_URL', plugin_dir_url( __FILE__ ) );
@@ -24,6 +24,7 @@ require_once EKDILOSEIS_DIR . 'includes/post-type.php';
 require_once EKDILOSEIS_DIR . 'includes/categories.php';
 require_once EKDILOSEIS_DIR . 'includes/meta-box.php';
 require_once EKDILOSEIS_DIR . 'includes/settings.php';
+require_once EKDILOSEIS_DIR . 'includes/source.php';
 require_once EKDILOSEIS_DIR . 'includes/documentation.php';
 require_once EKDILOSEIS_DIR . 'includes/shortcode.php';
 
