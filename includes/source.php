@@ -370,6 +370,23 @@ function ekdiloseis_source_all_day_label() {
 }
 
 /**
+ * Public time label shared by native events and mapped post types.
+ * No start time: the all-day label. Start time only: HH:MM. Both: HH:MM–HH:MM.
+ *
+ * @param string $start_time Start time (H:i or H:i:s), '' for all day.
+ * @param string $end_time   End time (H:i or H:i:s), '' when there is none.
+ * @return string
+ */
+function ekdiloseis_event_time_label( $start_time, $end_time = '' ) {
+	$start_time = is_string( $start_time ) ? $start_time : '';
+	$end_time   = is_string( $end_time ) ? $end_time : '';
+	if ( '' === $start_time ) {
+		return ekdiloseis_source_all_day_label();
+	}
+	return substr( $start_time, 0, 5 ) . ( '' !== $end_time ? '–' . substr( $end_time, 0, 5 ) : '' );
+}
+
+/**
  * One mapped post as the normalized event payload, or null when it has no usable date.
  *
  * @param WP_Post              $post   Post.
@@ -430,11 +447,7 @@ function ekdiloseis_source_event_from_post( WP_Post $post, $source ) {
 		}
 	}
 
-	if ( '' === $start_time ) {
-		$label = ekdiloseis_source_all_day_label();
-	} else {
-		$label = substr( $start_time, 0, 5 ) . ( '' !== $end_time ? '–' . substr( $end_time, 0, 5 ) : '' );
-	}
+	$label = ekdiloseis_event_time_label( $start_time, $end_time );
 
 	$thumb = get_the_post_thumbnail_url( $post_id, 'medium' );
 	if ( ! is_string( $thumb ) || '' === $thumb ) {

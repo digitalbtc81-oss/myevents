@@ -16,6 +16,26 @@
 		return dt.getUTCFullYear() + "-" + month + "-" + day;
 	}
 
+	/* All-day events arrive as midnight to the midnight after the last day (exclusive). */
+	function isAllDay(event) {
+		return !!(event && event.allDay === true);
+	}
+
+	function prevDay(iso) {
+		var parts = iso.split("-");
+		var dt = new Date(Date.UTC(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2])));
+		dt.setUTCDate(dt.getUTCDate() - 1);
+		return dt.toISOString().slice(0, 10);
+	}
+
+	/* Inclusive last day of an all-day event. */
+	function allDayLastDay(event) {
+		var start = String(event.start || "").slice(0, 10);
+		var end = String(event.end || "");
+		var last = end.slice(11, 19) === "00:00:00" ? prevDay(end.slice(0, 10)) : end.slice(0, 10);
+		return last < start ? start : last;
+	}
+
 	function overlaps(event, day) {
 		var dayStart = day + " 00:00:00";
 		var next = nextDay(day) + " 00:00:00";
@@ -283,8 +303,19 @@
 		var sxEvents = [];
 		var calendars = {};
 		source.forEach(function (event) {
-			var start = toZoned(event.start);
-			var end = toZoned(event.end);
+			var start;
+			var end;
+			if (isAllDay(event)) {
+				try {
+					start = Temporal.PlainDate.from(String(event.start || "").slice(0, 10));
+					end = Temporal.PlainDate.from(allDayLastDay(event));
+				} catch (error) {
+					return;
+				}
+			} else {
+				start = toZoned(event.start);
+				end = toZoned(event.end);
+			}
 			if (!start || !end) {
 				return;
 			}

@@ -99,6 +99,18 @@ function ekdiloseis_event_column_content( $column, $post_id ) {
 		echo '—';
 		return;
 	}
+	if ( ekdiloseis_event_is_all_day( $post_id ) ) {
+		$label = $dt->format( 'd/m/Y' );
+		$end   = get_post_meta( $post_id, 'event_end', true );
+		if ( is_string( $end ) && preg_match( '/^\d{4}-\d{2}-\d{2}/', $end ) && substr( $end, 0, 10 ) > substr( $start, 0, 10 ) ) {
+			$end_dt = DateTimeImmutable::createFromFormat( '!Y-m-d', substr( $end, 0, 10 ) );
+			if ( $end_dt instanceof DateTimeImmutable ) {
+				$label .= ' – ' . $end_dt->format( 'd/m/Y' );
+			}
+		}
+		echo esc_html( $label . ' (All day)' );
+		return;
+	}
 	echo esc_html( $dt->format( 'd/m/Y H:i' ) );
 }
 add_action( 'manage_ekdilosi_posts_custom_column', 'ekdiloseis_event_column_content', 10, 2 );

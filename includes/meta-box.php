@@ -145,6 +145,129 @@ function ekdiloseis_admin_time_value( $stored ) {
 }
 
 /**
+ * Whether a native event is stored as all day (no start time).
+ *
+ * @param int $post_id Post ID.
+ * @return bool
+ */
+function ekdiloseis_event_is_all_day( $post_id ) {
+	return '1' === (string) get_post_meta( (int) $post_id, 'event_all_day', true );
+}
+
+/**
+ * Whether a native event has a start time but no end time.
+ *
+ * @param int $post_id Post ID.
+ * @return bool
+ */
+function ekdiloseis_event_has_no_end_time( $post_id ) {
+	return '1' === (string) get_post_meta( (int) $post_id, 'event_no_end_time', true );
+}
+
+/**
+ * Build the stored range from the four Schedule fields. Times are optional.
+ *
+ * - No start time: all day. Start is the start date at 00:00:00, end is the end date
+ *   (or the start date when empty) at 23:59:59.
+ * - Start time without end time: end is the end date at 23:59:59 when it is a later day,
+ *   otherwise one hour after the start (never past the end of that day).
+ * - Both times: the usual range. An empty end date means the start date.
+ *
+ * @param string $start_date Start date field (dd/mm/yyyy).
+ * @param string $start_time Start time field (HH:MM, optional).
+ * @param string $end_date   End date field (dd/mm/yyyy, optional).
+ * @param string $end_time   End time field (HH:MM, optional).
+ * @return array{error: string, start: string, end: string, all_day: bool, no_end_time: bool}
+ *         error is '' on success, 'invalid' for unreadable input, '1' when end is before start.
+ */
+function ekdiloseis_build_range( $start_date, $start_time, $end_date, $end_time ) {
+	$result = array(
+		'error'       => '',
+		'start'       => '',
+		'end'         => '',
+		'all_day'     => false,
+		'no_end_time' => false,
+	);
+
+	$start_date = is_string( $start_date ) ? trim( $start_date ) : '';
+	$start_time = is_string( $start_time ) ? trim( $start_time ) : '';
+	$end_date   = is_string( $end_date ) ? trim( $end_date ) : '';
+	$end_time   = is_string( $end_time ) ? trim( $end_time ) : '';
+
+	$sd = ekdiloseis_parse_admin_date( $start_date );
+	if ( '' === $sd ) {
+		$result['error'] = 'invalid';
+		return $result;
+	}
+	$ed = $sd;
+	if ( '' !== $end_date ) {
+		$ed = ekdiloseis_parse_admin_date( $end_date );
+		if ( '' === $ed ) {
+			$result['error'] = 'invalid';
+			return $result;
+		}
+	}
+	$st = '';
+	if ( '' !== $start_time ) {
+		$st = ekdiloseis_parse_admin_time( $start_time );
+		if ( '' === $st ) {
+			$result['error'] = 'invalid';
+			return $result;
+		}
+	}
+	$et = '';
+	if ( '' !== $end_time ) {
+		$et = ekdiloseis_parse_admin_time( $end_time );
+		if ( '' === $et ) {
+			$result['error'] = 'invalid';
+			return $result;
+		}
+	}
+
+	if ( '' === $st && '' !== $et ) {
+		// An end time without a start time is ambiguous; ask for a start time instead of dropping it.
+		$result['error'] = 'invalid';
+		return $result;
+	}
+	if ( $ed < $sd ) {
+		$result['error'] = '1';
+		return $result;
+	}
+
+	if ( '' === $st ) {
+		// All day.
+		$result['start']   = ekdiloseis_normalize_datetime( $sd . ' 00:00:00' );
+		$result['end']     = ekdiloseis_normalize_datetime( $ed . ' 23:59:59' );
+		$result['all_day'] = true;
+	} elseif ( '' === $et ) {
+		$result['start']       = ekdiloseis_normalize_datetime( $sd . ' ' . $st );
+		$result['no_end_time'] = true;
+		if ( $ed > $sd ) {
+			$result['end'] = ekdiloseis_normalize_datetime( $ed . ' 23:59:59' );
+		} else {
+			$tz       = new DateTimeZone( 'Europe/Athens' );
+			$start_dt = DateTimeImmutable::createFromFormat( '!Y-m-d H:i:s', $sd . ' ' . $st, $tz );
+			$day_end  = $sd . ' 23:59:59';
+			$hour     = $start_dt instanceof DateTimeImmutable ? $start_dt->modify( '+1 hour' )->format( 'Y-m-d H:i:s' ) : $day_end;
+			$result['end'] = ekdiloseis_normalize_datetime( $hour < $day_end ? $hour : $day_end );
+		}
+	} else {
+		$result['start'] = ekdiloseis_normalize_datetime( $sd . ' ' . $st );
+		$result['end']   = ekdiloseis_normalize_datetime( $ed . ' ' . $et );
+	}
+
+	if ( '' === $result['start'] || '' === $result['end'] ) {
+		$result['error'] = 'invalid';
+		return $result;
+	}
+	if ( $result['end'] <= $result['start'] ) {
+		// 23:59:59 start with no end time would land here; so would a reversed range.
+		$result['error'] = '1';
+	}
+	return $result;
+}
+
+/**
  * One posted text field, unslashed and sanitized.
  *
  * @param string $key Field name.
@@ -241,19 +364,23 @@ function ekdiloseis_render_meta_box( $post ) {
 	$event_icon   = ekdiloseis_sanitize_icon_class( is_string( $icon_raw ) ? $icon_raw : '' );
 	$location_raw = get_post_meta( $post->ID, 'event_location', true );
 	$location     = ekdiloseis_sanitize_location( is_string( $location_raw ) ? $location_raw : '' );
+	$all_day      = ekdiloseis_event_is_all_day( $post->ID );
+	$no_end_time  = $all_day || ekdiloseis_event_has_no_end_time( $post->ID );
+	$start_time   = $all_day ? '' : ekdiloseis_admin_time_value( $start );
+	$end_time     = $no_end_time ? '' : ekdiloseis_admin_time_value( $end );
 	wp_nonce_field( 'ekdiloseis_save_event', 'ekdiloseis_nonce' );
 	?>
 	<p>
 		<label for="ekdiloseis_event_start_date"><strong>Start</strong></label><br>
 		<input type="text" id="ekdiloseis_event_start_date" name="ekdiloseis_event_start_date" value="<?php echo esc_attr( ekdiloseis_admin_date_value( $start ) ); ?>" placeholder="dd/mm/yyyy" inputmode="numeric" autocomplete="off" maxlength="10" size="10">
-		<input type="text" id="ekdiloseis_event_start_time" name="ekdiloseis_event_start_time" value="<?php echo esc_attr( ekdiloseis_admin_time_value( $start ) ); ?>" placeholder="HH:MM" inputmode="numeric" autocomplete="off" maxlength="8" size="8" aria-label="Start time">
+		<input type="text" id="ekdiloseis_event_start_time" name="ekdiloseis_event_start_time" value="<?php echo esc_attr( $start_time ); ?>" placeholder="HH:MM" inputmode="numeric" autocomplete="off" maxlength="8" size="8" aria-label="Start time (optional)">
 	</p>
 	<p>
 		<label for="ekdiloseis_event_end_date"><strong>End</strong></label><br>
 		<input type="text" id="ekdiloseis_event_end_date" name="ekdiloseis_event_end_date" value="<?php echo esc_attr( ekdiloseis_admin_date_value( $end ) ); ?>" placeholder="dd/mm/yyyy" inputmode="numeric" autocomplete="off" maxlength="10" size="10">
-		<input type="text" id="ekdiloseis_event_end_time" name="ekdiloseis_event_end_time" value="<?php echo esc_attr( ekdiloseis_admin_time_value( $end ) ); ?>" placeholder="HH:MM" inputmode="numeric" autocomplete="off" maxlength="8" size="8" aria-label="End time">
+		<input type="text" id="ekdiloseis_event_end_time" name="ekdiloseis_event_end_time" value="<?php echo esc_attr( $end_time ); ?>" placeholder="HH:MM" inputmode="numeric" autocomplete="off" maxlength="8" size="8" aria-label="End time (optional)">
 		<br>
-		<span class="description"><?php echo esc_html( 'Date as dd/mm/yyyy or dd/mm/yy, then the time (HH:MM).' ); ?></span>
+		<span class="description"><?php echo esc_html( 'Date as dd/mm/yyyy or dd/mm/yy. Time (HH:MM) is optional: leave the start time empty for an all-day event, or the end time empty to show only the start time. An empty end date means the same day as the start.' ); ?></span>
 	</p>
 	<p>
 		<label for="ekdiloseis_event_location"><strong><?php echo esc_html( 'Location (optional)' ); ?></strong></label><br>
@@ -326,7 +453,8 @@ function ekdiloseis_redirect_with_range_error( $location ) {
 }
 
 /**
- * Save start and end. A range that is missing or not strictly increasing is left untouched.
+ * Save start and end. Times are optional (see ekdiloseis_build_range()). An unreadable
+ * range, or an end before the start, is left untouched.
  *
  * @param int $post_id Post ID.
  */
@@ -382,31 +510,66 @@ function ekdiloseis_save_event_meta( $post_id ) {
 		update_post_meta( $post_id, 'event_location', $location );
 	}
 
-	$start = ekdiloseis_submitted_datetime(
+	$range = ekdiloseis_build_range(
 		ekdiloseis_posted_text( 'ekdiloseis_event_start_date' ),
-		ekdiloseis_posted_text( 'ekdiloseis_event_start_time' )
-	);
-	$end   = ekdiloseis_submitted_datetime(
+		ekdiloseis_posted_text( 'ekdiloseis_event_start_time' ),
 		ekdiloseis_posted_text( 'ekdiloseis_event_end_date' ),
 		ekdiloseis_posted_text( 'ekdiloseis_event_end_time' )
 	);
-
-	if ( '' === $start || '' === $end ) {
-		ekdiloseis_flag_range_error( 'invalid' );
-		return;
-	}
-	if ( $end <= $start ) {
-		ekdiloseis_flag_range_error( '1' );
+	if ( '' !== $range['error'] ) {
+		ekdiloseis_flag_range_error( $range['error'] );
 		return;
 	}
 
-	update_post_meta( $post_id, 'event_start', $start );
-	update_post_meta( $post_id, 'event_end', $end );
+	update_post_meta( $post_id, 'event_start', $range['start'] );
+	update_post_meta( $post_id, 'event_end', $range['end'] );
+	if ( $range['all_day'] ) {
+		update_post_meta( $post_id, 'event_all_day', '1' );
+	} else {
+		delete_post_meta( $post_id, 'event_all_day' );
+	}
+	if ( $range['no_end_time'] ) {
+		update_post_meta( $post_id, 'event_no_end_time', '1' );
+	} else {
+		delete_post_meta( $post_id, 'event_no_end_time' );
+	}
 }
 add_action( 'save_post_ekdilosi', 'ekdiloseis_save_event_meta' );
 
 /**
- * Admin error when a bad range was submitted.
+ * Text for a rejected range.
+ *
+ * @param string $code '1' or 'invalid'.
+ * @return string
+ */
+function ekdiloseis_range_error_message( $code ) {
+	if ( 'invalid' === $code ) {
+		return 'Enter a valid start date as dd/mm/yyyy (or dd/mm/yy). Times (HH:MM) are optional, but an end time needs a start time. The range was not saved.';
+	}
+	return 'End must be after start (an all-day event may end on its start date). The range was not saved.';
+}
+
+/**
+ * Read and clear the stored range error for the current user.
+ *
+ * @return string '1', 'invalid' or ''.
+ */
+function ekdiloseis_take_range_error() {
+	$user_id = get_current_user_id();
+	if ( ! $user_id ) {
+		return '';
+	}
+	$transient = get_transient( 'ekdiloseis_range_error_' . $user_id );
+	if ( false === $transient ) {
+		return '';
+	}
+	delete_transient( 'ekdiloseis_range_error_' . $user_id );
+	return is_string( $transient ) && in_array( $transient, array( '1', 'invalid' ), true ) ? $transient : '';
+}
+
+/**
+ * Admin error when a bad range was submitted (classic editor and list screens).
+ * The block editor hides classic notices, so there the error is shown by ekdiloseis_block_editor_range_notice().
  */
 function ekdiloseis_admin_notices() {
 	if ( ! is_admin() ) {
@@ -416,31 +579,97 @@ function ekdiloseis_admin_notices() {
 	if ( ! $screen || 'ekdilosi' !== $screen->post_type ) {
 		return;
 	}
+	if ( method_exists( $screen, 'is_block_editor' ) && $screen->is_block_editor() ) {
+		// Leave the transient for the block editor script (this page may be the meta box save redirect).
+		return;
+	}
 
-	$user_id   = get_current_user_id();
-	$transient = $user_id ? get_transient( 'ekdiloseis_range_error_' . $user_id ) : false;
 	$query_raw = isset( $_GET['ekdiloseis_range_error'] ) ? sanitize_text_field( wp_unslash( $_GET['ekdiloseis_range_error'] ) ) : '';
-	$code      = '';
-	if ( is_string( $transient ) && in_array( $transient, array( '1', 'invalid' ), true ) ) {
-		$code = $transient;
-	} elseif ( in_array( $query_raw, array( '1', 'invalid' ), true ) ) {
+	$code      = ekdiloseis_take_range_error();
+	if ( '' === $code && in_array( $query_raw, array( '1', 'invalid' ), true ) ) {
 		$code = $query_raw;
 	}
 	if ( '' === $code ) {
 		return;
 	}
-	if ( $transient && $user_id ) {
-		delete_transient( 'ekdiloseis_range_error_' . $user_id );
-	}
-
-	if ( 'invalid' === $code ) {
-		$message = 'Enter a valid date as dd/mm/yyyy (or dd/mm/yy) and a time (HH:MM). The range was not saved.';
-	} else {
-		$message = 'End must be after start. The range was not saved.';
-	}
 
 	echo '<div class="notice notice-error"><p>';
-	echo esc_html( $message );
+	echo esc_html( ekdiloseis_range_error_message( $code ) );
 	echo '</p></div>';
 }
 add_action( 'admin_notices', 'ekdiloseis_admin_notices' );
+
+/**
+ * AJAX: return and clear the current user's range error (block editor only reads it).
+ */
+function ekdiloseis_ajax_range_error() {
+	check_ajax_referer( 'ekdiloseis_range_error', 'nonce' );
+	if ( ! current_user_can( 'edit_posts' ) ) {
+		wp_send_json_error( null, 403 );
+	}
+	$code = ekdiloseis_take_range_error();
+	wp_send_json_success(
+		array(
+			'code'    => $code,
+			'message' => '' !== $code ? ekdiloseis_range_error_message( $code ) : '',
+		)
+	);
+}
+add_action( 'wp_ajax_ekdiloseis_range_error', 'ekdiloseis_ajax_range_error' );
+
+/**
+ * Block editor: after the Schedule meta box is saved (and once on load), show a rejected range as an editor notice.
+ */
+function ekdiloseis_block_editor_range_notice() {
+	$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+	if ( ! $screen || 'ekdilosi' !== $screen->post_type ) {
+		return;
+	}
+	$config = wp_json_encode(
+		array(
+			'url'   => admin_url( 'admin-ajax.php' ),
+			'nonce' => wp_create_nonce( 'ekdiloseis_range_error' ),
+		)
+	);
+	$script = <<<'JS'
+(function (config) {
+	if (!window.wp || !wp.data || !config) {
+		return;
+	}
+	function check() {
+		var body = new URLSearchParams();
+		body.append("action", "ekdiloseis_range_error");
+		body.append("nonce", config.nonce);
+		window.fetch(config.url, { method: "POST", credentials: "same-origin", body: body })
+			.then(function (response) { return response.json(); })
+			.then(function (json) {
+				if (json && json.success && json.data && json.data.message) {
+					wp.data.dispatch("core/notices").createErrorNotice(json.data.message, { id: "ekdiloseis-range-error", isDismissible: true });
+				} else {
+					wp.data.dispatch("core/notices").removeNotice("ekdiloseis-range-error");
+				}
+			})
+			.catch(function () {});
+	}
+	var wasSaving = false;
+	wp.data.subscribe(function () {
+		var store = wp.data.select("core/edit-post");
+		if (!store || typeof store.isSavingMetaBoxes !== "function") {
+			return;
+		}
+		var saving = store.isSavingMetaBoxes();
+		if (wasSaving && !saving) {
+			check();
+		}
+		wasSaving = saving;
+	});
+	if (window.wp.domReady) {
+		wp.domReady(check);
+	} else {
+		check();
+	}
+})
+JS;
+	wp_add_inline_script( 'wp-edit-post', $script . '(' . $config . ');' );
+}
+add_action( 'enqueue_block_editor_assets', 'ekdiloseis_block_editor_range_notice' );

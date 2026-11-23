@@ -59,10 +59,11 @@ function ekdiloseis_render_docs_page() {
 			'How to add an event',
 			array(
 				'Open Events, then Add New. Set the title, the content, and the featured image.',
-				'In Schedule, enter Start and End as a date plus a time. The date is dd/mm/yyyy (dd/mm/yy is also accepted). The time is 24-hour HH:MM. Seconds are optional; if you omit them they are stored as 00.',
-				'The values are stored as Y-m-d H:i:s, using the site timezone (Europe/Athens) as wall-clock time. End must be after start. If the date or time is invalid, or end is not after start, the range is not saved and the previous start and end stay as they were. Color, icon, and location on the same screen are saved on their own.',
+				'In Schedule, enter Start and End as a date plus an optional time. The date is dd/mm/yyyy (dd/mm/yy is also accepted). The time is 24-hour HH:MM. Seconds are optional; if you omit them they are stored as 00. An empty end date means the same day as the start.',
+				'Times are optional. Leave the start time empty for an all-day event: the calendars show it as All day (Ολοήμερο in Greek), and an end date after the start date makes it span every day through that date. Fill in a start time but leave the end time empty to show only the start time (for example 10:00 instead of 10:00–12:00); on the calendar such an event lasts one hour, or runs through the end date when that is a later day. An end time without a start time is not accepted.',
+				'The values are stored as Y-m-d H:i:s, using the site timezone (Europe/Athens) as wall-clock time. An all-day event is stored from 00:00:00 on the start date to 23:59:59 on the end date, with the event_all_day post meta set to 1. An event without an end time has the event_no_end_time post meta set to 1. With both times, end must be after start. If a date or time is invalid, or the end is before the start, an error is shown, the range is not saved and the previous start and end stay as they were. Color, icon, and location on the same screen are saved on their own.',
 				'Location (optional) is a plain-text place, for example Athens or a venue name. It is stored in the event_location post meta, without HTML, up to 200 characters. Leave it empty for no location. The Default calendar shows it on the event card, next to a pin icon, only when it is set.',
-				'The events list has a Start column (day/month/year and HH:MM) that can be sorted.',
+				'The events list has a Start column (day/month/year and HH:MM, or All day) that can be sorted.',
 			)
 		);
 		ekdiloseis_docs_section(

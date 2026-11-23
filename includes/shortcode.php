@@ -444,14 +444,19 @@ function ekdiloseis_events_for_month( DateTimeImmutable $month_start ) {
 }
 
 /**
- * Clock label HH:MM–HH:MM.
+ * Clock label HH:MM–HH:MM, HH:MM when there is no end time, or the all-day label.
  *
- * @param string $start Stored start.
- * @param string $end   Stored end.
+ * @param string $start       Stored start.
+ * @param string $end         Stored end.
+ * @param bool   $all_day     Stored as all day.
+ * @param bool   $no_end_time Stored without an end time.
  * @return string
  */
-function ekdiloseis_time_label( $start, $end ) {
-	return substr( $start, 11, 5 ) . '–' . substr( $end, 11, 5 );
+function ekdiloseis_time_label( $start, $end, $all_day = false, $no_end_time = false ) {
+	if ( $all_day ) {
+		return ekdiloseis_event_time_label( '' );
+	}
+	return ekdiloseis_event_time_label( substr( (string) $start, 11, 5 ), $no_end_time ? '' : substr( (string) $end, 11, 5 ) );
 }
 
 /**
@@ -532,8 +537,21 @@ function ekdiloseis_event_from_row( $row ) {
 	if ( '' === $start || '' === $end || $end <= $start ) {
 		return null;
 	}
-	$post_id = (int) $row->ID;
-	$thumb   = get_the_post_thumbnail_url( $post_id, 'medium' );
+	$post_id     = (int) $row->ID;
+	$all_day     = ekdiloseis_event_is_all_day( $post_id );
+	$no_end_time = ! $all_day && ekdiloseis_event_has_no_end_time( $post_id );
+	$label       = ekdiloseis_time_label( $start, $end, $all_day, $no_end_time );
+	if ( $all_day ) {
+		// Same shape as mapped all-day events: midnight to the midnight after the last day (exclusive).
+		$tz       = new DateTimeZone( 'Europe/Athens' );
+		$last_day = DateTimeImmutable::createFromFormat( '!Y-m-d', substr( $end, 0, 10 ), $tz );
+		$start    = substr( $start, 0, 10 ) . ' 00:00:00';
+		if ( $last_day instanceof DateTimeImmutable ) {
+			// A stored end at exactly midnight already is the exclusive bound.
+			$end = '00:00:00' === substr( $end, 11 ) ? $end : $last_day->modify( '+1 day' )->format( 'Y-m-d H:i:s' );
+		}
+	}
+	$thumb = get_the_post_thumbnail_url( $post_id, 'medium' );
 	if ( ! is_string( $thumb ) || '' === $thumb ) {
 		$thumb = get_the_post_thumbnail_url( $post_id, 'full' );
 	}
@@ -548,7 +566,9 @@ function ekdiloseis_event_from_row( $row ) {
 		'title'     => html_entity_decode( (string) $row->post_title, ENT_QUOTES, 'UTF-8' ),
 		'start'     => $start,
 		'end'       => $end,
-		'time'      => substr( $start, 11, 5 ) . '–' . substr( $end, 11, 5 ),
+		'time'      => $label,
+		'timeLabel' => $label,
+		'allDay'    => $all_day,
 		'thumb'     => '' !== $thumb ? $thumb : null,
 		'url'       => $permalink,
 		'color'     => $colors['color'],

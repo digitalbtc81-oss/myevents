@@ -16,6 +16,26 @@
 		return dt.getUTCFullYear() + "-" + month + "-" + day;
 	}
 
+	/* All-day events arrive as midnight to the midnight after the last day (exclusive). */
+	function isAllDay(event) {
+		return !!(event && event.allDay === true);
+	}
+
+	function prevDay(iso) {
+		var parts = iso.split("-");
+		var dt = new Date(Date.UTC(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2])));
+		dt.setUTCDate(dt.getUTCDate() - 1);
+		return dt.toISOString().slice(0, 10);
+	}
+
+	/* Inclusive last day of an all-day event. */
+	function allDayLastDay(event) {
+		var start = String(event.start || "").slice(0, 10);
+		var end = String(event.end || "");
+		var last = end.slice(11, 19) === "00:00:00" ? prevDay(end.slice(0, 10)) : end.slice(0, 10);
+		return last < start ? start : last;
+	}
+
 	function overlaps(event, day) {
 		var dayStart = day + " 00:00:00";
 		var next = nextDay(day) + " 00:00:00";
@@ -311,13 +331,15 @@
 				dragBackgroundColor: bg,
 				color: fg
 			};
+			var allDay = isAllDay(event);
 			return {
 				id: String(event.id),
 				calendarId: calendarId,
 				title: event.title || "",
-				start: String(event.start || "").replace(" ", "T"),
-				end: String(event.end || "").replace(" ", "T"),
-				category: "time",
+				start: allDay ? String(event.start || "").slice(0, 10) + "T00:00:00" : String(event.start || "").replace(" ", "T"),
+				end: allDay ? allDayLastDay(event) + "T23:59:59" : String(event.end || "").replace(" ", "T"),
+				category: allDay ? "allday" : "time",
+				isAllday: allDay,
 				isReadOnly: true,
 				backgroundColor: bg,
 				borderColor: bg,
